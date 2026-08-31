@@ -64,6 +64,7 @@ export function useRealtimeChannel({
   onChange,
   debounceMs = 300,
   enabled = true,
+  pollMs = 12000,
 }: UseRealtimeChannelOptions) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
