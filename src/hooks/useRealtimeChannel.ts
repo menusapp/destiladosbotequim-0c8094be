@@ -30,6 +30,12 @@ interface UseRealtimeChannelOptions {
   debounceMs?: number;
   /** Whether the channel should be active. Use for conditional subscriptions. */
   enabled?: boolean;
+  /**
+   * Intervalo do polling de fallback em ms (default 12000). Use valores
+   * menores (5000-6000) apenas em telas operacionais críticas (PDV, mesas)
+   * e 0 para desligar o polling quando o Realtime já basta.
+   */
+  pollMs?: number;
 }
 
 /**
@@ -58,6 +64,7 @@ export function useRealtimeChannel({
   onChange,
   debounceMs = 300,
   enabled = true,
+  pollMs = 12000,
 }: UseRealtimeChannelOptions) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -103,12 +110,12 @@ export function useRealtimeChannel({
     // por RLS. Um refetch periódico garante que o painel se mantenha atualizado
     // (independente de o Realtime entregar ou não os eventos).
     let pollTimer: ReturnType<typeof setInterval> | null = null;
-    if (onChangeRef.current) {
+    if (onChangeRef.current && pollMs > 0) {
       pollTimer = setInterval(() => {
         if (!cancelled && document.visibilityState === "visible") {
           onChangeRef.current?.();
         }
-      }, 12000);
+      }, pollMs);
     }
 
     return () => {
@@ -118,5 +125,5 @@ export function useRealtimeChannel({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelName, bindingsKey, debounceMs, enabled]);
+  }, [channelName, bindingsKey, debounceMs, enabled, pollMs]);
 }

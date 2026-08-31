@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -49,7 +49,7 @@ import { withProductComplements } from "@/lib/productComplements";
 import { TableCardMobile } from "./pdv/mobile/TableCardMobile";
 import { TableFilterChips } from "./pdv/mobile/TableFilterChips";
 import { cn } from "@/lib/utils";
-import { usePolling } from "@/hooks/usePolling";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface CartItem {
   productId: string;
@@ -458,36 +458,36 @@ const PDVTab = ({ restaurantId, restaurantSlug: slugProp, pendingTableToOpen, on
     return buildActiveReservationByTable(todayReservations || []);
   }, [todayReservations]);
 
-  // Realtime for tables and orders — filtered + debounced para evitar refetch em rajada
-  useEffect(() => {
-    let tablesTimer: ReturnType<typeof setTimeout>;
-    let ordersTimer: ReturnType<typeof setTimeout>;
-    const debouncedTables = () => { clearTimeout(tablesTimer); tablesTimer = setTimeout(() => refetchTables(), 250); };
-    const debouncedReservations = () => { clearTimeout(tablesTimer); tablesTimer = setTimeout(() => refetchTodayReservations(), 250); };
-    const debouncedOrders = () => {
-      clearTimeout(ordersTimer);
-      ordersTimer = setTimeout(() => {
-        refetchPendingOrders();
-        refetchActiveOrders();
-        queryClient.invalidateQueries({ queryKey: ["pdv-searchable-orders"] });
-      }, 300);
-    };
-    const ch = supabase.channel(`pdv-tables-rt-${restaurantId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tables", filter: `restaurant_id=eq.${restaurantId}` }, debouncedTables)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comandas", filter: `restaurant_id=eq.${restaurantId}` }, debouncedTables)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, debouncedOrders)
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `restaurant_id=eq.${restaurantId}` }, debouncedReservations)
-      .subscribe();
-    return () => { clearTimeout(tablesTimer); clearTimeout(ordersTimer); supabase.removeChannel(ch); };
-  }, [restaurantId, refetchTables, refetchTodayReservations, refetchPendingOrders, refetchActiveOrders, queryClient]);
-
-  // Fallback por polling — mantém o PDV atualizado mesmo sem eventos de
-  // Realtime (o token de sessão não trafega no websocket).
-  usePolling(() => {
+  // Realtime + fallback de polling consolidados em um único canal/timer.
+  // Antes havia dois mecanismos concorrentes (canal próprio + usePolling de 12s),
+  // dobrando as requisições. Agora é um canal só, com polling de 6s (tela
+  // operacional crítica) e pausa automática quando a aba não está visível.
+  const refetchPdvTables = useCallback(() => {
     refetchTables();
     refetchTodayReservations();
+  }, [refetchTables, refetchTodayReservations]);
+
+  const refetchPdvOrders = useCallback(() => {
     refetchPendingOrders();
     refetchActiveOrders();
+    queryClient.invalidateQueries({ queryKey: ["pdv-searchable-orders"] });
+  }, [refetchPendingOrders, refetchActiveOrders, queryClient]);
+
+  useRealtimeChannel({
+    channelName: `pdv-tables-rt-${restaurantId}`,
+    enabled: !!restaurantId,
+    debounceMs: 250,
+    pollMs: 6000,
+    bindings: [
+      { table: "tables", filter: `restaurant_id=eq.${restaurantId}` },
+      { table: "comandas", filter: `restaurant_id=eq.${restaurantId}` },
+      { table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
+      { table: "reservations", filter: `restaurant_id=eq.${restaurantId}` },
+    ],
+    onChange: () => {
+      refetchPdvTables();
+      refetchPdvOrders();
+    },
   });
 
   // Debounced search keeps typing snappy on large product lists

@@ -39,6 +39,7 @@ import { SplitPaymentDialog } from "./SplitPaymentDialog";
 import { SplitPaymentSelect } from "./SplitPaymentSelect";
 import { printDocument } from "@/lib/printDispatcher";
 import { useStaffOrderPermissions } from "@/hooks/useStaffOrderPermissions";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface TableDetailDialogProps {
   restaurantId: string;
@@ -169,29 +170,26 @@ export const TableDetailDialog = ({
     }
   }, [open, table?.id]);
 
-  // Realtime subscription for table data — filtrado por table_id e debounced
-  useEffect(() => {
-    if (!open || !table) return;
-    let ordersTimer: ReturnType<typeof setTimeout>;
-    let billsTimer: ReturnType<typeof setTimeout>;
-    let splitsTimer: ReturnType<typeof setTimeout>;
-    const debouncedOrders = () => {
-      clearTimeout(ordersTimer);
-      ordersTimer = setTimeout(() => { refetchOrders(); refetchComandas(); }, 200);
-    };
-    const debouncedBills = () => { clearTimeout(billsTimer); billsTimer = setTimeout(() => refetchBills(), 200); };
-    const debouncedSplits = () => { clearTimeout(splitsTimer); splitsTimer = setTimeout(() => refetchSplits(), 200); };
-    const ch = supabase.channel(`table-detail-${table.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `table_id=eq.${table.id}` }, debouncedOrders)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bills", filter: `table_id=eq.${table.id}` }, debouncedBills)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comandas", filter: `table_id=eq.${table.id}` }, debouncedOrders)
-      .on("postgres_changes", { event: "*", schema: "public", table: "order_item_splits", filter: `restaurant_id=eq.${restaurantId}` }, debouncedSplits)
-      .subscribe();
-    return () => {
-      clearTimeout(ordersTimer); clearTimeout(billsTimer); clearTimeout(splitsTimer);
-      supabase.removeChannel(ch);
-    };
-  }, [open, table?.id]);
+  // Realtime da mesa consolidado no hook central (canal único + cleanup
+  // garantido + polling de fallback de 6s pausado com a aba em background).
+  useRealtimeChannel({
+    channelName: `table-detail-${table?.id ?? "none"}`,
+    enabled: !!open && !!table?.id,
+    debounceMs: 200,
+    pollMs: 6000,
+    bindings: [
+      { table: "orders", filter: `table_id=eq.${table?.id}` },
+      { table: "bills", filter: `table_id=eq.${table?.id}` },
+      { table: "comandas", filter: `table_id=eq.${table?.id}` },
+      { table: "order_item_splits", filter: `restaurant_id=eq.${restaurantId}` },
+    ],
+    onChange: () => {
+      refetchOrders();
+      refetchComandas();
+      refetchBills();
+      refetchSplits();
+    },
+  });
 
   // Fetch requested/on_the_way bills for this table
   const { data: requestedBills, refetch: refetchBills } = useQuery({
