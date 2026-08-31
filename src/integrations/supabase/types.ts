@@ -5798,6 +5798,14 @@ export type Database = {
         Returns: undefined
       }
       table_has_activity: { Args: { p_table_id: string }; Returns: boolean }
+      track_customer_session: {
+        Args: {
+          p_fields?: Json
+          p_restaurant_id: string
+          p_session_token: string
+        }
+        Returns: undefined
+      }
       trigger_ifood_polling_all: { Args: never; Returns: undefined }
       try_acquire_polling_lock: {
         Args: { _key: string; _owner?: string; _ttl_seconds?: number }
