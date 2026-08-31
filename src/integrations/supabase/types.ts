@@ -5482,6 +5482,18 @@ export type Database = {
         Args: { p_cpf: string; p_id: string }
         Returns: boolean
       }
+      finalize_order_payment: {
+        Args: {
+          p_comanda_id?: string
+          p_online_payment_id?: string
+          p_order_id: string
+          p_payment_brand?: string
+          p_payment_status?: string
+          p_payment_type?: string
+          p_status?: string
+        }
+        Returns: boolean
+      }
       get_active_bill: {
         Args: { p_comanda_id?: string; p_table_id: string }
         Returns: {
@@ -5713,6 +5725,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_coupon_usage: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
+      }
       insert_point_order_payment: {
         Args: {
           p_amount?: number
@@ -5795,6 +5811,10 @@ export type Database = {
       }
       restore_stock_for_order_item_secured_impl_17539: {
         Args: { p_order_item_id: string; p_restaurant_id: string }
+        Returns: undefined
+      }
+      set_customer_phone_if_empty: {
+        Args: { p_cpf: string; p_phone: string; p_restaurant_id: string }
         Returns: undefined
       }
       table_has_activity: { Args: { p_table_id: string }; Returns: boolean }

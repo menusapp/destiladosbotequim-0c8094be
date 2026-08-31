@@ -711,12 +711,13 @@ const Menu = () => {
       
       // Update phone if new one provided and customer exists but has no phone
       if (existingCustomer && phone && !existingCustomer.phone) {
-        await supabase
-          .from("customers")
-          .update({ phone })
-          .eq("restaurant_id", restaurant.id)
-          .eq("cpf", cleanCpf);
+        await (supabase as any).rpc("set_customer_phone_if_empty", {
+          p_restaurant_id: restaurant.id,
+          p_cpf: cleanCpf,
+          p_phone: phone,
+        });
       }
+
       
 
       // ⚡ Suportar AMBOS: table_number (int) OU id (UUID)

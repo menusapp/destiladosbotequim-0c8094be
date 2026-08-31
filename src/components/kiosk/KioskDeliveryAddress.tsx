@@ -84,12 +84,22 @@ export function KioskDeliveryAddress({ primaryColor, customerCpf, customerName, 
         street, number, complement: complement || null,
         neighborhood, city, state: "SP", zip_code: "00000-000",
       };
-      // id gerado no cliente (sem `.select()` de retorno, bloqueado pelo RLS).
-      const id = crypto.randomUUID();
-      const { error } = await supabase
-        .from("customer_addresses")
-        .insert({ id, ...newAddr });
+      // Persistido via RPC segura (SECURITY DEFINER) — sem escrita direta anônima.
+      const { data: newId, error } = await (supabase as any).rpc("add_customer_address", {
+        p_cpf: customerCpf,
+        p_name: customerName,
+        p_phone: customerPhone || "0",
+        p_street: street,
+        p_number: number,
+        p_neighborhood: neighborhood,
+        p_city: city,
+        p_state: "SP",
+        p_zip_code: "00000-000",
+        p_complement: complement || null,
+        p_is_default: false,
+      });
       if (error) throw error;
+      const id = (typeof newId === "string" ? newId : crypto.randomUUID());
       const addr = { id, ...newAddr } as SavedAddress;
       onSelectAddress(formatAddress(addr));
     } catch (err: any) {

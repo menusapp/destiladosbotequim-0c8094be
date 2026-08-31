@@ -228,11 +228,11 @@ export default function DeliveryMenu() {
       
       // Update phone if new one provided and customer exists
       if (existingCustomer && phone && !existingCustomer.phone) {
-        await supabase
-          .from("customers")
-          .update({ phone })
-          .eq("restaurant_id", restaurant.id)
-          .eq("cpf", sanitizedCPF);
+        await (supabase as any).rpc("set_customer_phone_if_empty", {
+          p_restaurant_id: restaurant.id,
+          p_cpf: sanitizedCPF,
+          p_phone: phone,
+        });
       }
       
       setCustomerName(finalName);

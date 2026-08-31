@@ -158,12 +158,12 @@ export function KioskPayment({
 
     // Now that items+extras exist atomically, update to final status so triggers fire
     if (finalStatus !== "pending") {
-      const { error: updateError } = await supabase.from("orders").update({
-        status: finalStatus,
-        payment_type: getPaymentTypeForDB(),
-        payment_status: "paid",
-        paid_at: new Date().toISOString(),
-      }).eq("id", orderId);
+      const { error: updateError } = await (supabase as any).rpc("finalize_order_payment", {
+        p_order_id: orderId,
+        p_payment_type: getPaymentTypeForDB(),
+        p_payment_status: "paid",
+        p_status: finalStatus,
+      });
 
       if (updateError) {
         console.error("[KioskPayment] Status update error:", updateError);
@@ -192,7 +192,10 @@ export function KioskPayment({
           });
 
         if (!comandaError) {
-          await supabase.from("orders").update({ comanda_id: comandaId }).eq("id", orderId);
+          await (supabase as any).rpc("finalize_order_payment", {
+            p_order_id: orderId,
+            p_comanda_id: comandaId,
+          });
         }
 
         if (isTablePaid) {
@@ -207,9 +210,7 @@ export function KioskPayment({
 
     // Update coupon usage
     if (appliedCoupon?.id) {
-      await supabase.from("coupons").update({
-        used_count: (appliedCoupon.used_count || 0) + 1,
-      }).eq("id", appliedCoupon.id);
+      await (supabase as any).rpc("increment_coupon_usage", { p_coupon_id: appliedCoupon.id });
     }
 
     // Update loyalty

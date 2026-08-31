@@ -230,18 +230,14 @@ export const CheckoutDrawer = ({
       let order: any;
 
       if (existingOrderId) {
-        // Finalize previously pre-created online-payment order: just update it.
-        // Sem `.select()` de retorno: no fluxo anônimo (cliente sem sessão) o
-        // RLS não permite ler a linha de volta; só precisamos do id, que já
-        // temos em existingOrderId.
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({
-            payment_type: orderData.payment_type,
-            payment_status: orderData.payment_status,
-            online_payment_id: orderData.online_payment_id,
-          })
-          .eq("id", existingOrderId);
+        // Finaliza pedido pré-criado de pagamento online via RPC segura
+        // (o fluxo anônimo não tem permissão de UPDATE direto em `orders`).
+        const { error: updateError } = await (supabase as any).rpc("finalize_order_payment", {
+          p_order_id: existingOrderId,
+          p_payment_type: orderData.payment_type ?? null,
+          p_payment_status: orderData.payment_status ?? null,
+          p_online_payment_id: orderData.online_payment_id ?? null,
+        });
         if (updateError) {
           console.error("Erro ao finalizar pedido online:", updateError);
           throw updateError;
@@ -352,10 +348,7 @@ export const CheckoutDrawer = ({
       }
 
       if (coupon) {
-        await supabase
-          .from("coupons")
-          .update({ used_count: coupon.used_count + 1 })
-          .eq("id", coupon.id);
+        await (supabase as any).rpc("increment_coupon_usage", { p_coupon_id: coupon.id });
       }
 
       if (restaurant.loyalty_enabled && customerData.cpf) {
@@ -382,12 +375,19 @@ export const CheckoutDrawer = ({
       }
 
       if (deliveryType === "delivery" && addressData?.saveForLater) {
-        await supabase.from("customer_addresses").insert({
-          customer_cpf: customerData.cpf,
-          customer_name: customerData.name,
-          customer_phone: customerData.phone,
-          ...addressData.address,
-          is_default: addressData.isFirstAddress,
+        const a: any = addressData.address || {};
+        await (supabase as any).rpc("add_customer_address", {
+          p_cpf: customerData.cpf,
+          p_name: customerData.name,
+          p_phone: customerData.phone,
+          p_street: a.street ?? "",
+          p_number: a.number ?? "",
+          p_neighborhood: a.neighborhood ?? "",
+          p_city: a.city ?? "",
+          p_state: a.state ?? "",
+          p_zip_code: a.zip_code ?? "",
+          p_complement: a.complement ?? null,
+          p_is_default: !!addressData.isFirstAddress,
         });
       }
 
