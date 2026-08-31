@@ -30,6 +30,12 @@ interface UseRealtimeChannelOptions {
   debounceMs?: number;
   /** Whether the channel should be active. Use for conditional subscriptions. */
   enabled?: boolean;
+  /**
+   * Intervalo do polling de fallback em ms (default 12000). Use valores
+   * menores (5000-6000) apenas em telas operacionais críticas (PDV, mesas)
+   * e 0 para desligar o polling quando o Realtime já basta.
+   */
+  pollMs?: number;
 }
 
 /**
