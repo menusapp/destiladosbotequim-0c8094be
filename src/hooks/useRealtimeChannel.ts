@@ -125,5 +125,5 @@ export function useRealtimeChannel({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelName, bindingsKey, debounceMs, enabled]);
+  }, [channelName, bindingsKey, debounceMs, enabled, pollMs]);
 }
