@@ -3,6 +3,7 @@
 // preserve a lógica do token de sessão (header `x-app-token`) abaixo.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { brokeredPreviewStorage } from './previewAuthStorage';
 import { getSessionToken } from '@/lib/authSession';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -51,7 +52,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
   },
   auth: {
-    storage: typeof window !== 'undefined' ? localStorage : undefined,
+    storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }
