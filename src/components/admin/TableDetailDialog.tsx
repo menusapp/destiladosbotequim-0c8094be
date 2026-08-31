@@ -39,6 +39,7 @@ import { SplitPaymentDialog } from "./SplitPaymentDialog";
 import { SplitPaymentSelect } from "./SplitPaymentSelect";
 import { printDocument } from "@/lib/printDispatcher";
 import { useStaffOrderPermissions } from "@/hooks/useStaffOrderPermissions";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface TableDetailDialogProps {
   restaurantId: string;
