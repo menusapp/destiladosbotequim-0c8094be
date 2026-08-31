@@ -1,4 +1,39 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+/**
+ * Canais de broadcast persistentes por restaurante.
+ *
+ * Antes, cada notificação criava um canal, esperava o SUBSCRIBED (até 1.5s de
+ * timeout) e o destruía — atrasando toda edição de pedido. Agora o canal é
+ * criado uma única vez por restaurante e reutilizado, então o envio é imediato.
+ */
+const channels = new Map<string, { channel: RealtimeChannel; ready: Promise<void> }>();
+
+function getChannel(restaurantId: string) {
+  const existing = channels.get(restaurantId);
+  if (existing) return existing;
+
+  const channel = supabase.channel(`order-modifications-${restaurantId}`, {
+    config: { broadcast: { self: false } },
+  });
+
+  const ready = new Promise<void>((resolve) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") resolve();
+      if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        // Permite recriar o canal na próxima chamada
+        channels.delete(restaurantId);
+        resolve();
+      }
+    });
+    setTimeout(() => resolve(), 1500);
+  });
+
+  const entry = { channel, ready };
+  channels.set(restaurantId, entry);
+  return entry;
+}
 
 /**
  * Broadcasts a "order-modified" event so other admin sessions receive a
@@ -16,14 +51,8 @@ export async function broadcastOrderModified(params: {
       localStorage.getItem("restaurant_id") ||
       "unknown";
 
-    const channel = supabase.channel(`order-modifications-${params.restaurantId}`);
-    await new Promise<void>((resolve) => {
-      channel.subscribe((status) => {
-        if (status === "SUBSCRIBED") resolve();
-      });
-      // Safety timeout
-      setTimeout(() => resolve(), 1500);
-    });
+    const { channel, ready } = getChannel(params.restaurantId);
+    await ready;
 
     await channel.send({
       type: "broadcast",
@@ -35,15 +64,6 @@ export async function broadcastOrderModified(params: {
         at: Date.now(),
       },
     });
-
-    // Cleanup after a short delay so the message has time to flush
-    setTimeout(() => {
-      try {
-        supabase.removeChannel(channel);
-      } catch {
-        // ignore
-      }
-    }, 800);
   } catch (e) {
     // Non-blocking — notifications are best-effort
     console.warn("broadcastOrderModified failed:", e);
