@@ -110,12 +110,12 @@ export function useRealtimeChannel({
     // por RLS. Um refetch periódico garante que o painel se mantenha atualizado
     // (independente de o Realtime entregar ou não os eventos).
     let pollTimer: ReturnType<typeof setInterval> | null = null;
-    if (onChangeRef.current) {
+    if (onChangeRef.current && pollMs > 0) {
       pollTimer = setInterval(() => {
         if (!cancelled && document.visibilityState === "visible") {
           onChangeRef.current?.();
         }
-      }, 12000);
+      }, pollMs);
     }
 
     return () => {
