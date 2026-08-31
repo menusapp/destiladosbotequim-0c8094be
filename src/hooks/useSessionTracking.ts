@@ -55,9 +55,13 @@ export function useSessionTracking(restaurantId: string | undefined, restaurantS
           delete payload.cart_value;
         }
 
-        await supabase
-          .from("customer_sessions" as any)
-          .upsert(payload as any, { onConflict: "session_token,restaurant_id" });
+        const { session_token: _st, restaurant_id: _rid, last_activity: _la, ...fieldsPayload } = payload;
+
+        await supabase.rpc("track_customer_session" as any, {
+          p_restaurant_id: restaurantId,
+          p_session_token: token,
+          p_fields: fieldsPayload as any,
+        });
       } catch {
         // Silent - never block navigation
       }
