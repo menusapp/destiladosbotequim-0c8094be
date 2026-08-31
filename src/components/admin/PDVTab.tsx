@@ -49,7 +49,7 @@ import { withProductComplements } from "@/lib/productComplements";
 import { TableCardMobile } from "./pdv/mobile/TableCardMobile";
 import { TableFilterChips } from "./pdv/mobile/TableFilterChips";
 import { cn } from "@/lib/utils";
-import { usePolling } from "@/hooks/usePolling";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface CartItem {
   productId: string;
