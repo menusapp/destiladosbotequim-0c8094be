@@ -346,6 +346,37 @@ Caminho sugerido: **suba no Free e valide a migração inteira** (é reversível
 não custa nada). Com tudo funcionando, os US$ 25/mês do Pro compram backup
 diário, e aí sim vale.
 
+### Medido, não estimado
+
+O repositório traz `scripts/simular-carga.sh`, que cria pedidos completos
+(itens, complementos, baixa de estoque, lançamento no caixa, numeração diária
+e o ciclo de status até pago) num restaurante de teste e mede o crescimento
+real do banco:
+
+```bash
+SUPABASE_DB_URL='postgresql://...' ./scripts/simular-carga.sh 200 20
+./scripts/simular-carga.sh --limpar     # remove tudo que ele criou
+```
+
+Rodando 200 pedidos sobre este schema, o resultado foi:
+
+| | |
+|---|---|
+| banco com o schema e sem dados | 16 MB |
+| custo marginal por pedido | **3,6 KB** (≈9 linhas em 5 tabelas) |
+| a 20 pedidos/dia | 2,1 MB/mês · 26 MB/ano |
+| tempo até encostar nos 500 MB | **~19 anos** |
+
+Ou seja: **o banco não é o gargalo, nem de longe.** Quem consome a cota é o
+cron, com ~138,7 mil chamadas/mês contra ~1,8 mil dos pedidos — 28% do Free
+sem nenhum cliente. Se for apertar em algum lugar, aperte o intervalo do
+polling do iFood, não o volume de pedidos.
+
+Atenção ao medir: numa base zerada a primeira leva de pedidos paga a alocação
+de páginas e índices de dezenas de tabelas e sai ~10x mais cara (41 KB/pedido
+em vez de 3,6 KB). O script descarta uma leva de aquecimento antes de medir
+justamente por isso.
+
 ## 12. Dívida de segurança (herdada, não criada aqui)
 
 Coisas que **já são assim hoje no Lovable** e continuam iguais depois da
