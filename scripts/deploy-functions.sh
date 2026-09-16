@@ -12,7 +12,20 @@ set -euo pipefail
 BOLD=$'\033[1m'; RED=$'\033[31m'; GREEN=$'\033[32m'; RESET=$'\033[0m'
 cd "$(dirname "$0")/.."
 
-command -v supabase >/dev/null 2>&1 || { echo "${RED}erro:${RESET} CLI do Supabase não encontrado (npm install -g supabase)" >&2; exit 1; }
+# Resolve como chamar a CLI do Supabase. Instalar ela global via npm não é
+# suportado oficialmente, então aceitamos as duas formas: binário no PATH
+# (instalado pelo .deb/brew) ou `npx supabase`, que dispensa instalação.
+if command -v supabase >/dev/null 2>&1; then
+  SUPABASE=(supabase)
+elif command -v npx >/dev/null 2>&1; then
+  echo "  (usando 'npx supabase' — CLI não está no PATH)"
+  SUPABASE=(npx --yes supabase@latest)
+else
+  echo "erro: nem a CLI do Supabase nem o npx foram encontrados." >&2
+  echo "      Instale o Node 20+ e rode de novo, ou instale a CLI:" >&2
+  echo "      https://supabase.com/docs/guides/local-development/cli/getting-started" >&2
+  exit 1
+fi
 
 if [ $# -gt 0 ]; then
   FUNCTIONS=("$@")
@@ -26,7 +39,7 @@ echo "${BOLD}Fazendo deploy de ${#FUNCTIONS[@]} function(s)${RESET}"
 FAILED=()
 for fn in "${FUNCTIONS[@]}"; do
   printf '  %-38s' "$fn"
-  if supabase functions deploy "$fn" > /tmp/deploy-"$fn".log 2>&1; then
+  if "${SUPABASE[@]}" functions deploy "$fn" > /tmp/deploy-"$fn".log 2>&1; then
     echo "${GREEN}ok${RESET}"
   else
     echo "${RED}FALHOU${RESET} (log: /tmp/deploy-$fn.log)"

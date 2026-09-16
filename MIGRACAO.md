@@ -31,13 +31,50 @@ As 217 migrations foram **testadas replicando do zero** num PostgreSQL limpo:
 
 ## 2. Do que você precisa antes
 
-- Conta no [Supabase](https://supabase.com) (o plano grátis serve para começar — ver seção 11)
-- [CLI do Supabase](https://supabase.com/docs/guides/local-development/cli/getting-started): `npm install -g supabase`
-- Node 20+ e npm
+- Conta no [Supabase](https://supabase.com)
+- **Node 20 ou mais novo**
 - `psql` (pacote `postgresql-client`) para migrar os dados
 - Uma chave de IA — [Google AI Studio](https://aistudio.google.com/apikey) tem cota grátis
 
----
+### Numa VPS Ubuntu zerada
+
+Não use `apt install npm`: no Ubuntu 22.04 isso instala **Node 12**, velho
+demais para o Vite 5 deste projeto. Use o repositório oficial da NodeSource:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs postgresql-client
+node -v    # tem que mostrar v20.x ou mais
+```
+
+### CLI do Supabase
+
+**Não precisa instalar.** Os scripts daqui detectam sozinhos: se o comando
+`supabase` não estiver no PATH, eles usam `npx supabase`, que é a forma
+oficialmente suportada (a própria Supabase não suporta `npm install -g supabase`).
+
+Se ainda assim quiser o binário instalado — fica mais rápido, porque o `npx`
+baixa a CLI toda vez:
+
+```bash
+# pega a última versão e instala o .deb
+VER=$(curl -fsSL https://api.github.com/repos/supabase/cli/releases/latest \
+        | grep -oP '"tag_name": "v\K[^"]+')
+curl -fsSL -o /tmp/supabase.deb \
+  "https://github.com/supabase/cli/releases/download/v${VER}/supabase_${VER}_linux_amd64.deb"
+dpkg -i /tmp/supabase.deb
+supabase --version
+```
+
+### Conexões longas não podem cair
+
+`db push`, `pg_dump` e o deploy das functions demoram. Se o SSH cair no meio,
+o comando morre junto. Rode tudo dentro do `tmux`:
+
+```bash
+tmux new -s migracao      # para sair sem matar: Ctrl+B, depois D
+tmux attach -t migracao   # para voltar depois
+```
 
 ## 3. Criar o projeto Supabase
 

@@ -6,7 +6,7 @@
 #
 # O que faz, em ordem:
 #   1. liga o repo ao seu projeto          (supabase link)
-#   2. aplica as 217 migrations            (supabase db push)
+#   2. aplica as 217 migrations            ("${SUPABASE[@]}" db push)
 #   3. manda os secrets das functions      (supabase secrets set)
 #   4. faz deploy das 45 edge functions    (supabase functions deploy)
 #   5. aponta os cron jobs para o projeto  (app_runtime_config)
@@ -27,19 +27,30 @@ PROJECT_REF="${1:-}"
       O ref está em Supabase → Settings → General → Reference ID
       (é também o pedaço do meio da URL: https://<ref>.supabase.co)"
 
-command -v supabase >/dev/null 2>&1 || die "CLI do Supabase não encontrado.
-      Instale com:  npm install -g supabase
-      ou veja:      https://supabase.com/docs/guides/local-development/cli/getting-started"
+# Resolve como chamar a CLI do Supabase. Instalar ela global via npm não é
+# suportado oficialmente, então aceitamos as duas formas: binário no PATH
+# (instalado pelo .deb/brew) ou `npx supabase`, que dispensa instalação.
+if command -v supabase >/dev/null 2>&1; then
+  SUPABASE=(supabase)
+elif command -v npx >/dev/null 2>&1; then
+  echo "  (usando 'npx supabase' — CLI não está no PATH)"
+  SUPABASE=(npx --yes supabase@latest)
+else
+  echo "erro: nem a CLI do Supabase nem o npx foram encontrados." >&2
+  echo "      Instale o Node 20+ e rode de novo, ou instale a CLI:" >&2
+  echo "      https://supabase.com/docs/guides/local-development/cli/getting-started" >&2
+  exit 1
+fi
 
 # ── 1. link ──────────────────────────────────────────────────────────────────
 info "Ligando o repositório ao projeto $PROJECT_REF"
-supabase link --project-ref "$PROJECT_REF"
+"${SUPABASE[@]}" link --project-ref "$PROJECT_REF"
 ok "projeto ligado"
 
 # ── 2. migrations ────────────────────────────────────────────────────────────
 info "Aplicando as migrations (cria tabelas, funções, policies e buckets)"
 echo "    Isso vai pedir a senha do banco (Settings → Database → Database password)."
-supabase db push
+"${SUPABASE[@]}" db push
 ok "migrations aplicadas"
 
 # ── 3. secrets ───────────────────────────────────────────────────────────────
@@ -49,7 +60,7 @@ if [ -f .env.supabase ]; then
   TMP_SECRETS="$(mktemp)"; trap 'rm -f "$TMP_SECRETS"' EXIT
   grep -vE '^\s*#' .env.supabase | grep -E '^[A-Z_0-9]+=.+' | grep -vE '^SUPABASE_' > "$TMP_SECRETS" || true
   if [ -s "$TMP_SECRETS" ]; then
-    supabase secrets set --env-file "$TMP_SECRETS"
+    "${SUPABASE[@]}" secrets set --env-file "$TMP_SECRETS"
     ok "$(wc -l < "$TMP_SECRETS") secrets enviados"
   else
     warn ".env.supabase está sem valores preenchidos — pulando"
