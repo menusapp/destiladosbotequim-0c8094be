@@ -279,7 +279,24 @@ Aponte o DNS do domínio para a nova hospedagem e emita o certificado
 
 ---
 
-## 10. Conferir
+## 10. Primeiro acesso
+
+A migration `20260916160000` já cria o estabelecimento e os dois acessos —
+não depende do painel do CEO nem de nenhuma tela:
+
+| Onde | Usuário | Senha |
+|---|---|---|
+| `/login` (restaurante) | `destilado` | `destilado123` |
+| painel (conta de admin) | `admin` | `admin123` |
+| `/login/ceo` (CEO) | `ceo` | `Ceo@2026` |
+
+**Troque as três assim que entrar.** São senhas de bootstrap e o histórico
+deste repositório é público.
+
+Com o acesso funcionando, restaure o cadastro em **Configurações → Backup →
+Restaurar**, subindo o JSON exportado do sistema antigo.
+
+### Conferir
 
 ```bash
 SUPABASE_DB_URL='postgresql://postgres:SENHA@db.SEU_REF.supabase.co:5432/postgres' \
@@ -288,14 +305,12 @@ SUPABASE_DB_URL='postgresql://postgres:SENHA@db.SEU_REF.supabase.co:5432/postgre
 
 E na mão, no app:
 
-- [ ] Login da equipe entra (valida as RPCs de sessão e o RLS)
+- [ ] Login da equipe entra
 - [ ] Cardápio público carrega com produtos e fotos
 - [ ] Criar um pedido de teste no PDV
 - [ ] Emitir uma NFC-e de teste (valida o certificado A1)
 - [ ] Mandar uma mensagem pelo WhatsApp
 - [ ] Depois de ~2 min, `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;` mostra execuções com sucesso
-
----
 
 ## 11. O plano grátis do Supabase aguenta?
 
