@@ -406,6 +406,17 @@ export default function BackupSettings({ restaurantId }: BackupSettingsProps) {
       const backupData = pendingRestore.data;
       const idMap: Record<string, string> = {};
       const counts: Record<string, number> = {};
+      // O supabase-js NÃO lança exceção em erro: devolve { error }. Antes o
+      // insert ficava dentro de um try/catch que nunca disparava, e a tabela
+      // era contada como restaurada mesmo tendo falhado — dava para ver
+      // "Restauração concluída" com o banco vazio. Agora cada falha é
+      // registrada e mostrada.
+      const falhas: { tabela: string; erro: string }[] = [];
+      const registrarFalha = (tabela: string, erro: string) => {
+        // uma entrada por tabela: 37 produtos falhando pelo mesmo motivo
+        // viram 37 linhas iguais e escondem o resto.
+        if (!falhas.some((f) => f.tabela === tabela)) falhas.push({ tabela, erro });
+      };
       const totalPhases = RESTORE_PHASES.length;
 
       // Helper: remap a record's FKs and generate new ID
@@ -444,21 +455,23 @@ export default function BackupSettings({ restaurantId }: BackupSettingsProps) {
         const isSingleton = SINGLETON_TABLES.includes(tableName);
 
         if (isSingleton) {
-          // Delete existing config for this restaurant first
-          try {
-            await supabase.from(tableName as any).delete().eq("restaurant_id", restaurantId);
-          } catch { /* table may not exist or no rows */ }
+          const { error } = await supabase.from(tableName as any).delete().eq("restaurant_id", restaurantId);
+          if (error) registrarFalha(tableName, `limpeza: ${error.message}`);
         }
 
+        let inseridos = 0;
         for (const record of records) {
           const mapped = remapRecord(record, tableName);
-          try {
-            await supabase.from(tableName as any).insert(mapped);
-          } catch (err) {
-            console.warn(`Failed to insert into ${tableName}:`, err);
+          const { error } = await supabase.from(tableName as any).insert(mapped);
+          if (error) {
+            console.warn(`Falha ao inserir em ${tableName}:`, error);
+            registrarFalha(tableName, error.message);
+          } else {
+            inseridos++;
           }
         }
-        counts[tableName] = records.length;
+        // conta o que realmente entrou, não o que foi tentado
+        counts[tableName] = inseridos;
       };
 
       // Phase 0: Clean existing data (reverse dependency order)
@@ -569,15 +582,25 @@ export default function BackupSettings({ restaurantId }: BackupSettingsProps) {
         ? `Restauração concluída: ${summaryParts.join(", ")}.`
         : "Restauração concluída (nenhum dado para importar).";
 
-      setRestoreStatus("✅ " + summary);
       setRestoreProgress(100);
-      toast.success(summary);
+
+      if (falhas.length > 0) {
+        console.error("Falhas na restauração:", falhas);
+        const detalhe = falhas.map((f) => `${f.tabela}: ${f.erro}`).join(" • ");
+        setRestoreStatus(`⚠️ ${summary} Falhou em ${falhas.length} tabela(s) — ${detalhe}`);
+        toast.error(`Restauração incompleta. ${falhas[0].tabela}: ${falhas[0].erro}`, { duration: 15000 });
+      } else {
+        setRestoreStatus("✅ " + summary);
+        toast.success(summary);
+      }
+
       setPendingRestore(null);
       setBackupPreview(null);
     } catch (err) {
       console.error("Restore error:", err);
-      toast.error("Erro ao restaurar backup");
-      setRestoreStatus("❌ Erro durante a restauração");
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erro ao restaurar backup: " + msg, { duration: 15000 });
+      setRestoreStatus("❌ Erro durante a restauração: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setRestoring(false);
     }
