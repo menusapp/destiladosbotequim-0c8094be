@@ -131,6 +131,53 @@ const CEODashboard = () => {
     setDialogOpen(true);
   };
 
+  const ALL_ADMIN_SECTIONS = [
+    "pedidos-online","pedidos-locais","pdv","mesas-reservas","cardapio","caixa",
+    "estoque","custos","margens","relatorios","clientes","fidelidade","marketing",
+    "fiscal","modulos","config-dados","config-horario","config-regioes",
+    "config-pagamentos","config-pagamentos-online","config-impressoras","config-whatsapp"
+  ];
+
+  /**
+   * Cria (ou redefine) o acesso de admin de um restaurante.
+   *
+   * Usado tanto no cadastro quanto na edição: um restaurante criado sem
+   * credenciais — ou que perdeu a senha — não tinha como receber um primeiro
+   * acesso pelo painel, e a única saída era apagar e recadastrar.
+   *
+   * O upsert usa a chave (restaurant_id, username), então repetir o mesmo
+   * usuário troca a senha em vez de dar erro de duplicidade.
+   */
+  const salvarAcessoDoRestaurante = async (restaurantId: string) => {
+    const { data: hashData, error: hashError } = await supabase.functions.invoke("hash-password", {
+      body: { password: formPassword },
+    });
+    if (hashError || !hashData?.hash) throw new Error("Erro ao criar hash da senha");
+    const hashedPassword = hashData.hash;
+
+    const { error: credError } = await supabase.from("restaurant_credentials" as any)
+      .upsert(
+        { restaurant_id: restaurantId, username: formUsername, password_hash: hashedPassword } as any,
+        { onConflict: "restaurant_id,username" } as any,
+      );
+    if (credError) throw credError;
+
+    const { error: staffError } = await supabase.rpc("admin_create_staff", {
+      p_restaurant_id: restaurantId,
+      p_username: formUsername,
+      p_password_hash: hashedPassword,
+      p_display_name: "Administrador",
+      p_role: "admin",
+      p_allowed_sections: JSON.stringify(ALL_ADMIN_SECTIONS),
+    });
+    // Sem a conta de staff o login do painel não entra. Antes isso ia só para
+    // o console e o usuário via "criado com sucesso" sem conseguir acessar.
+    if (staffError) {
+      console.error("Erro ao criar conta admin:", staffError);
+      toast.error("Credencial salva, mas a conta de admin falhou: " + (staffError.message || "erro desconhecido"));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -139,38 +186,19 @@ const CEODashboard = () => {
           .update({ name: formName, slug: formSlug })
           .eq("id", editingRestaurant.id);
         if (error) throw error;
-        toast.success("Restaurante atualizado com sucesso!");
+        if (formUsername && formPassword) {
+          await salvarAcessoDoRestaurante(editingRestaurant.id);
+          toast.success("Restaurante atualizado e acesso definido!");
+        } else {
+          toast.success("Restaurante atualizado com sucesso!");
+        }
       } else {
         const { data: restaurant, error } = await supabase.from("restaurants")
           .insert({ name: formName, slug: formSlug })
           .select().single();
         if (error) throw error;
         if (formUsername && formPassword) {
-          const { data: hashData, error: hashError } = await supabase.functions.invoke("hash-password", {
-            body: { password: formPassword },
-          });
-          if (hashError || !hashData?.hash) throw new Error("Erro ao criar hash da senha");
-          const hashedPassword = hashData.hash;
-
-          const { error: credError } = await supabase.from("restaurant_credentials" as any)
-            .insert({ restaurant_id: restaurant.id, username: formUsername, password_hash: hashedPassword } as any);
-          if (credError) throw credError;
-
-          const allSections = [
-            "pedidos-online","pedidos-locais","pdv","mesas-reservas","cardapio","caixa",
-            "estoque","custos","margens","relatorios","clientes","fidelidade","marketing",
-            "fiscal","modulos","config-dados","config-horario","config-regioes",
-            "config-pagamentos","config-pagamentos-online","config-impressoras","config-whatsapp"
-          ];
-          const { error: staffError } = await supabase.rpc("admin_create_staff", {
-            p_restaurant_id: restaurant.id,
-            p_username: formUsername,
-            p_password_hash: hashedPassword,
-            p_display_name: "Administrador",
-            p_role: "admin",
-            p_allowed_sections: JSON.stringify(allSections),
-          });
-          if (staffError) console.error("Erro ao criar conta admin:", staffError);
+          await salvarAcessoDoRestaurante(restaurant.id);
         }
         toast.success("Restaurante criado com sucesso!");
       }
@@ -253,7 +281,7 @@ const CEODashboard = () => {
                   <DialogContent className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{editingRestaurant ? "Editar Restaurante" : "Cadastrar Novo Restaurante"}</DialogTitle>
-                      <DialogDescription>{editingRestaurant ? "Atualize os dados do restaurante" : "Preencha os dados do restaurante e as credenciais de acesso"}</DialogDescription>
+                      <DialogDescription>{editingRestaurant ? "Atualize os dados e, se precisar, defina o acesso" : "Preencha os dados do restaurante e as credenciais de acesso"}</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="space-y-2">
@@ -264,12 +292,22 @@ const CEODashboard = () => {
                         <Label htmlFor="slug">Slug (URL)</Label>
                         <Input id="slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="Ex: pizzaria-do-joao" required />
                       </div>
-                      {!editingRestaurant && (
-                        <>
-                          <div className="space-y-2"><Label>Usuário do Restaurante</Label><Input value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="usuario_restaurante" required /></div>
-                          <div className="space-y-2"><Label>Senha do Restaurante</Label><PasswordInput value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} /></div>
-                        </>
-                      )}
+                      <>
+                        {editingRestaurant && (
+                          <p className="text-xs text-muted-foreground border-t pt-3">
+                            Preencha abaixo para criar o primeiro acesso deste restaurante
+                            ou redefinir a senha. Deixe em branco para não alterar.
+                          </p>
+                        )}
+                        <div className="space-y-2">
+                          <Label>Usuário do Restaurante</Label>
+                          <Input value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="usuario_restaurante" required={!editingRestaurant} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Senha do Restaurante</Label>
+                          <PasswordInput value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required={!editingRestaurant} minLength={6} />
+                        </div>
+                      </>
                       <Button type="submit" className="w-full">{editingRestaurant ? "Atualizar" : "Criar"}</Button>
                     </form>
                   </DialogContent>
