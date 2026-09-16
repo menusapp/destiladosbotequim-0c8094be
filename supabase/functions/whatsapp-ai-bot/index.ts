@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
 const corsHeaders = {
   'Access-Control-Allow-Origin': allowedOrigin,
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-token',
 };
 
 // Domínio público do cardápio. Configurável pelo secret PUBLIC_DOMAIN.

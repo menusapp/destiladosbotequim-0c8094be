@@ -20,7 +20,7 @@ function buildPublicUrl(slug: string, extraPath?: string): string {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-token",
 };
 
 function escapeHtml(s: string): string {

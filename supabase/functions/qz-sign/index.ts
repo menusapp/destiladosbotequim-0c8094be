@@ -10,7 +10,7 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-app-token",
 };
 
 /** Normaliza o secret: aceita PEM, PEM com \n escapados, ou base64 puro. */
