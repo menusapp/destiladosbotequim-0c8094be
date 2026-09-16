@@ -266,15 +266,14 @@ SELECT cron.schedule('ifood-polling-every-30s', '* * * * *',
   $$ SELECT public.trigger_ifood_polling_all(); $$);  -- 1×/min em vez de 2×
 ```
 
-**Sobre rodar os seus três sistemas** (este ERP, a loja de roupas e o controle
-de vendas/rodagem): o plano Free limita a **2 projetos ativos por organização**.
-Os outros dois sistemas são bem mais leves que este ERP e caberiam com folga
-num projeto Free cada — o problema é só a contagem de projetos, não a
-capacidade. Confirme na página de preços como está hoje a regra de projetos por
-organização antes de montar o arranjo.
+**Veredito:** para este sistema sozinho, o Free dá conta do uso — o que falta
+nele é rede de proteção, não capacidade. Como o Destilado é usado todo dia, a
+pausa por inatividade não te pega; o que pesa mesmo é **não ter backup
+automático** num sistema que controla pedido, caixa e nota fiscal.
 
-Recomendação prática: **este ERP no Pro** (pelo backup e por não pausar) e os
-outros dois no Free.
+Caminho sugerido: **suba no Free e valide a migração inteira** (é reversível e
+não custa nada). Com tudo funcionando, os US$ 25/mês do Pro compram backup
+diário, e aí sim vale.
 
 ## 12. Dívida de segurança (herdada, não criada aqui)
 
