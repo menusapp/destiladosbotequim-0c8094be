@@ -7,7 +7,8 @@
 // Optional path passthrough: /functions/v1/menu-link-preview/<slug>/qualquer/coisa
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const PUBLIC_DOMAIN = "menusapp.com.br";
+// Domínio público do cardápio. Configurável pelo secret PUBLIC_DOMAIN.
+const PUBLIC_DOMAIN = Deno.env.get("PUBLIC_DOMAIN") || "menusapp.com.br";
 
 // Build the canonical public URL using the path-based format.
 // Ex.: buildPublicUrl("rods") → "https://menusapp.com.br/rods"

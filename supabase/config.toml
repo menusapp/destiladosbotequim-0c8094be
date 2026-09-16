@@ -1,5 +1,208 @@
-project_id = "ksscrxwvslddfqxjxzlo"
+# =====================================================================
+# Configuração do projeto Supabase.
+#
+# project_id: troque pelo ref do SEU projeto (Supabase → Settings → General
+# → Reference ID). `supabase link --project-ref <ref>` também preenche aqui.
+# =====================================================================
+project_id = "COLOQUE_AQUI_O_REF_DO_SEU_PROJETO"
 
-# Endpoint de login (chamado ANTES de existir sessão) — não pode exigir JWT.
+# ---------------------------------------------------------------------
+# verify_jwt das edge functions
+# ---------------------------------------------------------------------
+# ATENÇÃO — isto não é detalhe: o CLI do Supabase usa verify_jwt = true por
+# padrão. Se estas linhas não existirem, o deploy sobe TODAS as functions
+# exigindo um JWT do Supabase Auth e as integrações param de responder, com
+# 401, sem erro visível no app.
+#
+# Este sistema NÃO usa Supabase Auth: a sessão de staff/CEO é um token opaco
+# próprio, mandado no header `x-app-token` (ver src/integrations/supabase/
+# client.ts, que inclusive remove o header Authorization quando a chave é do
+# formato novo `sb_publishable_`). Ou seja: nenhuma chamada do app carrega
+# JWT. Somado aos webhooks (iFood, Delivery Direto, Mercado Pago, WhatsApp) e
+# aos cron jobs, todas as functions precisam de verify_jwt = false.
+#
+# ⚠️  Consequência, que já vale para o Lovable hoje: estes endpoints ficam
+#     publicamente chamáveis. Funções sensíveis como `staff-create` e
+#     `update-restaurant-credentials` não checam autorização por conta
+#     própria. Ver a seção "Dívida de segurança" no MIGRACAO.md.
+# ---------------------------------------------------------------------
+
+# chamada por cron job
+[functions.check-trial-expiry]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.dd-auth]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.dd-order-action]
+verify_jwt = false
+
+# chamada por cron job
+[functions.dd-polling]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.dd-webhook]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.digitize-menu]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.digitize-menu-url]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.fiscal-ai-suggest]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.hash-password]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.ifood-auth]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.ifood-catalog]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.ifood-order-action]
+verify_jwt = false
+
+# chamada por cron job
+[functions.ifood-polling]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.ifood-refresh-token]
+verify_jwt = false
+
+# login: chamada ANTES de existir sessão
 [functions.issue-session-token]
+verify_jwt = false
+
+# chamada por cron job
+[functions.loyalty-processor]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.manage-plan-change]
+verify_jwt = false
+
+# chamada por cron job
+[functions.marketing-absence-scanner]
+verify_jwt = false
+
+# chamada pelo frontend, chamada por cron job
+[functions.marketing-scheduler]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.marketing-trigger]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.menu-link-preview]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.mercadopago-charge]
+verify_jwt = false
+
+# chamada pelo frontend, webhook/callback externo
+[functions.mercadopago-oauth]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.mercadopago-point]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.mercadopago-subscription-webhook]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.nuvem-fiscal-cancel]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.nuvem-fiscal-company]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.nuvem-fiscal-download]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.nuvem-fiscal-emit]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.nuvem-fiscal-sync]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.parse-nfe]
+verify_jwt = false
+
+# chamada por cron job
+[functions.process-abandoned-carts]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.qz-cert]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.qz-sign]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.register-restaurant]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.restaurant-storage-ops]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.staff-create]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.update-restaurant-credentials]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.verify-password]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.whatsapp-ai-bot]
+verify_jwt = false
+
+# chamada interna / sem JWT disponível
+[functions.whatsapp-instance]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.whatsapp-notifications]
+verify_jwt = false
+
+# chamada pelo frontend
+[functions.whatsapp-send]
+verify_jwt = false
+
+# webhook/callback externo
+[functions.whatsapp-webhook]
 verify_jwt = false

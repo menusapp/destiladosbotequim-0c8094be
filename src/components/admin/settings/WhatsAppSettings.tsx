@@ -145,7 +145,7 @@ const OWNER_NOTIFICATION_DEFAULTS: Record<string, { label: string; icon: any; te
   },
 };
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) || "https://ksscrxwvslddfqxjxzlo.supabase.co";
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
 
 const WhatsAppSettings = ({ restaurantId }: { restaurantId: string }) => {
   const { toast } = useToast();

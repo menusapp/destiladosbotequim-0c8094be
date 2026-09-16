@@ -3,9 +3,9 @@
  *
  * Formato atual: path-based (`menusapp.com.br/{slug}/...`)
  *
- * Os subdomínios (`{slug}.menusapp.com.br`) foram desativados temporariamente
- * pois o domínio é hospedado no Lovable, que não suporta wildcards em domínios
- * customizados. Todas as funções abaixo retornam URLs no formato path-based.
+ * Os subdomínios (`{slug}.dominio`) foram desativados: a hospedagem usada não
+ * suportava wildcard em domínio customizado. Todas as funções abaixo retornam
+ * URLs no formato path-based.
  *
  * - `getPublicMenuLink(slug, extraPath?)` → URL pública do cardápio.
  * - `getDirectMenuLink(slug, extraPath?)` → alias de retrocompatibilidade.
@@ -16,9 +16,18 @@
  * - `getTableMenuLink(slug, tableNumber)`  → link de QR Code para mesa.
  */
 
-const PUBLIC_DOMAIN = "menusapp.com.br";
-const SUPABASE_PROJECT_REF = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "ksscrxwvslddfqxjxzlo";
-const PREVIEW_FN_BASE = `https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/menu-link-preview`;
+/** Domínio público do cardápio. Configurável por `VITE_PUBLIC_DOMAIN`. */
+const PUBLIC_DOMAIN = (import.meta.env.VITE_PUBLIC_DOMAIN as string | undefined) || "menusapp.com.br";
+
+/**
+ * Base das edge functions, derivada de `VITE_SUPABASE_URL`.
+ *
+ * NÃO existe mais fallback com o ref do projeto antigo: se a env não estiver
+ * configurada, é melhor quebrar de forma visível do que gerar links apontando
+ * silenciosamente para o Supabase de outra pessoa.
+ */
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
+const PREVIEW_FN_BASE = `${SUPABASE_URL.replace(/\/+$/, "")}/functions/v1/menu-link-preview`;
 
 function joinPath(base: string, extraPath?: string): string {
   if (!extraPath) return base;

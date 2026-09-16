@@ -20,6 +20,12 @@ GRANT ALL ON public.product_upsells TO service_role;
 
 ALTER TABLE public.product_upsells ENABLE ROW LEVEL SECURITY;
 
+-- [migração p/ Supabase próprio] as policies abaixo já são criadas pela
+-- migration 20260722220000; ao reproduzir o histórico num projeto novo o
+-- CREATE POLICY falhava com "already exists". DROP IF EXISTS torna idempotente.
+DROP POLICY IF EXISTS "public_read" ON public.product_upsells;
+DROP POLICY IF EXISTS "staff_all" ON public.product_upsells;
+
 CREATE POLICY "public_read" ON public.product_upsells
   FOR SELECT USING (is_active = true);
 CREATE POLICY "staff_all" ON public.product_upsells

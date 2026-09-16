@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { aiChatCompletion, extractToolArguments, textModel, visionModel } from "../_shared/ai.ts";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "*";
 
@@ -137,13 +138,6 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     const isComplements = mode === "complements";
 
@@ -188,73 +182,48 @@ Regras:
 
     const tool = isComplements ? getComplementsTool() : getProductsTool();
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
+    const aiResult = await aiChatCompletion({
+      model: visionModel(),
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
             {
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: { url: `data:${mimeType};base64,${cleanBase64}` },
-                },
-                {
-                  type: "text",
-                  text: isComplements
-                    ? "Analise este cardápio e extraia os complementos/adicionais usando a função extract_menu."
-                    : "Analise este cardápio e extraia todos os produtos usando a função extract_menu.",
-                },
-              ],
+              type: "image_url",
+              image_url: { url: `data:${mimeType};base64,${cleanBase64}` },
+            },
+            {
+              type: "text",
+              text: isComplements
+                ? "Analise este cardápio e extraia os complementos/adicionais usando a função extract_menu."
+                : "Analise este cardápio e extraia todos os produtos usando a função extract_menu.",
             },
           ],
-          tools: [tool],
-          tool_choice: { type: "function", function: { name: "extract_menu" } },
-        }),
-      }
-    );
+        },
+      ],
+      tools: [tool],
+      tool_choice: { type: "function", function: { name: "extract_menu" } },
+    });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
+    if (!aiResult.ok) {
       return new Response(
-        JSON.stringify({ error: "Erro ao processar imagem com IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: aiResult.error }),
+        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolArguments = extractToolArguments(aiResult.data);
 
-    if (!toolCall?.function?.arguments) {
-      console.error("No tool call in response:", JSON.stringify(data));
+    if (!toolArguments) {
+      console.error("No tool call in response:", JSON.stringify(aiResult.data));
       return new Response(
         JSON.stringify({ error: "IA não retornou dados estruturados" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const menuData = JSON.parse(toolCall.function.arguments);
+    const menuData = JSON.parse(toolArguments);
 
     return new Response(JSON.stringify(menuData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

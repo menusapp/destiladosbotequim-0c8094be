@@ -9,12 +9,17 @@ import { ESTABLISHMENT } from "@/config/establishment";
  * Ignora subdomínios reservados (www, app, admin, etc.) e ambientes de preview.
  */
 
-const MAIN_DOMAINS = [
-  "menusapp.com.br",
-  "lovable.app",
-  "lovableproject.com",
-  "localhost",
-];
+/**
+ * Domínios "raiz" do app. Um host igual a um deles NÃO é slug de restaurante;
+ * um subdomínio dele (ex.: `rods.menusapp.com.br`) é.
+ *
+ * Configurável por `VITE_APP_DOMAINS` (lista separada por vírgula) para que a
+ * troca de domínio não exija mexer no código.
+ */
+const MAIN_DOMAINS = ((import.meta.env.VITE_APP_DOMAINS as string | undefined) ?? "menusapp.com.br,localhost")
+  .split(",")
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 /** Subdomínios que NÃO devem ser tratados como slug de restaurante. */
 const RESERVED_SUBDOMAINS = new Set([
@@ -55,9 +60,8 @@ export function getSlugFromSubdomain(): string | null {
       const subdomain = hostname.slice(0, -1 * (`.${domain}`.length));
 
       if (!subdomain) return null;
-      // Subdomínios compostos (ex.: id-preview--xxxx.lovable.app) → ignorar
+      // Subdomínios compostos (ex.: a.b.dominio.com) → ignorar
       if (subdomain.includes(".")) return null;
-      if (subdomain.startsWith("id-preview--")) return null;
       if (RESERVED_SUBDOMAINS.has(subdomain.toLowerCase())) return null;
 
       return subdomain.toLowerCase();
@@ -72,7 +76,7 @@ export function getSlugFromSubdomain(): string | null {
  *
  * IMPORTANTE (estabelecimento único): NÃO usamos mais o subdomínio como slug.
  * No modo SaaS antigo, cada restaurante tinha um subdomínio; agora há um só
- * estabelecimento, e o host do Lovable (ex.: `destiladobotequim.lovable.app`)
+ * estabelecimento, e o host da plataforma (ex.: `destiladobotequim.host.app`)
  * era interpretado erradamente como slug (`destiladobotequim`), sem bater com
  * o slug real (`destilado-botequim`) — causando "Restaurante não encontrado".
  * Por isso resolvemos apenas pelo path (`/:slug/...`) ou, na falta dele, pelo

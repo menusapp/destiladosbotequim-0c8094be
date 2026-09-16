@@ -117,6 +117,16 @@ DROP POLICY IF EXISTS "auth_write_table_images"    ON storage.objects;
 DROP POLICY IF EXISTS "auth_update_table_images"   ON storage.objects;
 DROP POLICY IF EXISTS "auth_delete_table_images"   ON storage.objects;
 
+-- [migração p/ Supabase próprio] estas policies já podem existir de uma
+-- migration anterior; ao reproduzir o histórico num projeto novo o
+-- CREATE POLICY falhava com "already exists".
+DROP POLICY IF EXISTS "staff_write_product_images"  ON storage.objects;
+DROP POLICY IF EXISTS "staff_update_product_images" ON storage.objects;
+DROP POLICY IF EXISTS "staff_delete_product_images" ON storage.objects;
+DROP POLICY IF EXISTS "staff_write_table_images"    ON storage.objects;
+DROP POLICY IF EXISTS "staff_update_table_images"   ON storage.objects;
+DROP POLICY IF EXISTS "staff_delete_table_images"   ON storage.objects;
+
 CREATE POLICY "staff_write_product_images" ON storage.objects
   FOR INSERT TO public WITH CHECK (bucket_id = 'product-images' AND public.is_staff());
 CREATE POLICY "staff_update_product_images" ON storage.objects
@@ -211,6 +221,14 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- [migração p/ Supabase próprio] estes constraints já são criados pela
+-- migration 20260723080000; ao reproduzir o histórico num projeto novo o
+-- ADD CONSTRAINT falhava com "already exists".
+ALTER TABLE public.product_upsells
+  DROP CONSTRAINT IF EXISTS product_upsells_trigger_type_chk,
+  DROP CONSTRAINT IF EXISTS product_upsells_trigger_oneof_chk,
+  DROP CONSTRAINT IF EXISTS product_upsells_not_self_chk;
 
 ALTER TABLE public.product_upsells
   ADD CONSTRAINT product_upsells_trigger_type_chk CHECK (trigger_type IN ('product','category')),

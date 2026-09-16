@@ -6,7 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PUBLIC_DOMAIN = 'menusapp.com.br';
+// Domínio público do cardápio. Configurável pelo secret PUBLIC_DOMAIN.
+const PUBLIC_DOMAIN = Deno.env.get("PUBLIC_DOMAIN") || "menusapp.com.br";
 const SUPABASE_URL_ENV = Deno.env.get('SUPABASE_URL') || '';
 
 // Build the public menu URL using the path-based format:

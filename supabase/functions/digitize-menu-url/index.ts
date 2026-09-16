@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { aiChatCompletion, extractToolArguments, textModel, visionModel } from "../_shared/ai.ts";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "*";
 
@@ -294,10 +295,6 @@ serve(async (req) => {
       return jsonResponse({ error: "URL inválida" });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return jsonResponse({ error: "LOVABLE_API_KEY não configurada" });
-    }
 
     const isComplements = mode === "complements";
 
@@ -444,48 +441,28 @@ serve(async (req) => {
 
     const userContent = `Analise o seguinte conteúdo de cardápio digital extraído de ${url} e extraia os ${isComplements ? "complementos/adicionais" : "produtos"} usando a função extract_menu:\n\n${truncatedContent}${imageContext}`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Lovable-API-Key": LOVABLE_API_KEY,
-          "X-Lovable-AIG-SDK": "openai-compatible-rest",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
-          tools: [tool],
-          tool_choice: { type: "function", function: { name: "extract_menu" } },
-        }),
-      }
-    );
+    const aiResult = await aiChatCompletion({
+      model: textModel(),
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      tools: [tool],
+      tool_choice: { type: "function", function: { name: "extract_menu" } },
+    });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return jsonResponse({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." });
-      }
-      if (response.status === 402) {
-        return jsonResponse({ error: "Créditos insuficientes." });
-      }
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      return jsonResponse({ error: "Erro ao processar com IA" });
+    if (!aiResult.ok) {
+      return jsonResponse({ error: aiResult.error }, aiResult.status);
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolArguments = extractToolArguments(aiResult.data);
 
-    if (!toolCall?.function?.arguments) {
-      console.error("No tool call in response:", JSON.stringify(data));
+    if (!toolArguments) {
+      console.error("No tool call in response:", JSON.stringify(aiResult.data));
       return jsonResponse({ error: "IA não retornou dados estruturados" });
     }
 
-    const menuData = JSON.parse(toolCall.function.arguments);
+    const menuData = JSON.parse(toolArguments);
 
     return new Response(JSON.stringify(menuData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

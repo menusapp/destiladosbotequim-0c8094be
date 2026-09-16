@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { aiChatCompletion, extractToolArguments, textModel, visionModel } from "../_shared/ai.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -31,9 +32,6 @@ serve(async (req) => {
       .single();
 
     const uf = fiscalConfig?.uf || "SP";
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
     const systemPrompt = `Você é um especialista em tributação brasileira para NFC-e (Nota Fiscal de Consumidor Eletrônica) focado em estabelecimentos de alimentação (restaurantes, lanchonetes, bares, padarias, etc.) que operam no Simples Nacional (CRT 1).
 
@@ -68,74 +66,56 @@ Exemplos de NCM comuns para alimentação:
 - Carnes preparadas: 16025000
 - Porções/petiscos: 16025000`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Classifique fiscalmente este produto:\n\nNome: ${product_name}\nDescrição: ${product_description || "Sem descrição"}\n\nRetorne os códigos fiscais corretos.` },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "suggest_fiscal_codes",
-              description: "Retorna os códigos fiscais sugeridos para o produto",
-              parameters: {
-                type: "object",
-                properties: {
-                  ncm: { type: "string", description: "Código NCM de 8 dígitos" },
-                  cest: { type: "string", description: "Código CEST (7 dígitos) ou vazio se não aplicável" },
-                  cfop: { type: "string", description: "CFOP (ex: 5101 ou 5102)" },
-                  csosn: { type: "string", description: "CSOSN para Simples Nacional (ex: 102, 500)" },
-                  origin: { type: "string", description: "Origem da mercadoria (0 = Nacional)" },
-                  pis_cst: { type: "string", description: "CST do PIS (ex: 49)" },
-                  pis_aliquota: { type: "string", description: "Alíquota do PIS em % (ex: 0.00 para Simples Nacional)" },
-                  cofins_cst: { type: "string", description: "CST do COFINS (ex: 49)" },
-                  cofins_aliquota: { type: "string", description: "Alíquota do COFINS em % (ex: 0.00 para Simples Nacional)" },
-                  ibs_aliquota: { type: "string", description: "Alíquota do IBS em % conforme reforma tributária (ex: 0.00 se não aplicável)" },
-                  cbs_aliquota: { type: "string", description: "Alíquota do CBS em % conforme reforma tributária (ex: 0.00 se não aplicável)" },
-                  explanation: { type: "string", description: "Breve explicação da classificação" },
-                },
-                required: ["ncm", "cfop", "csosn", "origin", "pis_cst", "pis_aliquota", "cofins_cst", "cofins_aliquota", "ibs_aliquota", "cbs_aliquota"],
-                additionalProperties: false,
+    const aiResult = await aiChatCompletion({
+      model: textModel(),
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Classifique fiscalmente este produto:\n\nNome: ${product_name}\nDescrição: ${product_description || "Sem descrição"}\n\nRetorne os códigos fiscais corretos.` },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "suggest_fiscal_codes",
+            description: "Retorna os códigos fiscais sugeridos para o produto",
+            parameters: {
+              type: "object",
+              properties: {
+                ncm: { type: "string", description: "Código NCM de 8 dígitos" },
+                cest: { type: "string", description: "Código CEST (7 dígitos) ou vazio se não aplicável" },
+                cfop: { type: "string", description: "CFOP (ex: 5101 ou 5102)" },
+                csosn: { type: "string", description: "CSOSN para Simples Nacional (ex: 102, 500)" },
+                origin: { type: "string", description: "Origem da mercadoria (0 = Nacional)" },
+                pis_cst: { type: "string", description: "CST do PIS (ex: 49)" },
+                pis_aliquota: { type: "string", description: "Alíquota do PIS em % (ex: 0.00 para Simples Nacional)" },
+                cofins_cst: { type: "string", description: "CST do COFINS (ex: 49)" },
+                cofins_aliquota: { type: "string", description: "Alíquota do COFINS em % (ex: 0.00 para Simples Nacional)" },
+                ibs_aliquota: { type: "string", description: "Alíquota do IBS em % conforme reforma tributária (ex: 0.00 se não aplicável)" },
+                cbs_aliquota: { type: "string", description: "Alíquota do CBS em % conforme reforma tributária (ex: 0.00 se não aplicável)" },
+                explanation: { type: "string", description: "Breve explicação da classificação" },
               },
+              required: ["ncm", "cfop", "csosn", "origin", "pis_cst", "pis_aliquota", "cofins_cst", "cofins_aliquota", "ibs_aliquota", "cbs_aliquota"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "suggest_fiscal_codes" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "suggest_fiscal_codes" } },
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Erro ao consultar IA");
+    if (!aiResult.ok) {
+      return new Response(JSON.stringify({ error: aiResult.error }), {
+        status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolArguments = extractToolArguments(aiResult.data);
 
-    if (!toolCall) {
+    if (!toolArguments) {
       throw new Error("IA não retornou dados estruturados");
     }
 
-    const suggestion = JSON.parse(toolCall.function.arguments);
+    const suggestion = JSON.parse(toolArguments);
 
     return new Response(JSON.stringify({ suggestion }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
