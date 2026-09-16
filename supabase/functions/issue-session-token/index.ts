@@ -1,5 +1,13 @@
 // issue-session-token
 // -------------------------------------------------------------------------
+// ⚠️  LEGADO — NÃO ESTÁ EM USO.
+// O modelo abaixo (JWT assinado com o JWT Secret do projeto) foi substituído
+// pela sessão no servidor: as RPCs create_staff_session / create_ceo_session
+// gravam um token opaco em public.staff_sessions e o app o envia no header
+// `x-app-token` (ver migration 20260723010000 e src/integrations/supabase/
+// client.ts). O frontend NÃO chama esta function. Mantida só por histórico;
+// o secret JWT_SECRET não precisa existir.
+// -------------------------------------------------------------------------
 // Valida credenciais (restaurante / staff / CEO) usando as RPCs existentes
 // (SECURITY DEFINER, que já comparam o hash da senha) e, em caso de sucesso,
 // emite um JWT ASSINADO carregando os claims restaurant_id / staff_id / role.

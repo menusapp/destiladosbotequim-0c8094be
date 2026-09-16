@@ -104,7 +104,6 @@ tmux attach -t migracao   # para voltar depois
    - **Project URL** → `https://<ref>.supabase.co`
    - **Reference ID** → `<ref>`
    - **Publishable key** (ou anon key)
-5. Em Settings → API → JWT Settings, anote o **JWT Secret**
 
 ---
 
@@ -140,8 +139,13 @@ Preencha `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
 cp .env.supabase.example .env.supabase
 ```
 
-O campo mais importante é o **`JWT_SECRET`**: tem que ser o JWT Secret do
-projeto **novo**. Se ficar com o do Lovable, ninguém consegue logar.
+Preencha só `ALLOWED_ORIGIN`, `PUBLIC_DOMAIN` e `AI_API_KEY` para começar.
+As credenciais de iFood, Delivery Direto, Mercado Pago, Nuvem Fiscal e QZ
+podem entrar depois, uma integração de cada vez.
+
+**`JWT_SECRET` pode ficar em branco** — o login não usa JWT. Ele grava um
+token opaco em `staff_sessions` e o RLS valida no banco (migration
+20260723010000). Projetos Supabase novos nem expõem mais esse secret.
 
 ---
 
@@ -284,7 +288,7 @@ SUPABASE_DB_URL='postgresql://postgres:SENHA@db.SEU_REF.supabase.co:5432/postgre
 
 E na mão, no app:
 
-- [ ] Login da equipe entra (valida o `JWT_SECRET`)
+- [ ] Login da equipe entra (valida as RPCs de sessão e o RLS)
 - [ ] Cardápio público carrega com produtos e fotos
 - [ ] Criar um pedido de teste no PDV
 - [ ] Emitir uma NFC-e de teste (valida o certificado A1)
@@ -373,7 +377,7 @@ migração, mas valem uma passada depois:
 
 | Sintoma | Causa provável |
 |---|---|
-| Login da equipe dá erro | `JWT_SECRET` não é o do projeto novo |
+| Login da equipe dá erro | as RPCs `create_staff_session`/`create_ceo_session` ou a tabela `staff_sessions` não vieram no dump de dados (passo 7) |
 | Cardápio abre vazio | `ESTABLISHMENT.slug` (em `src/config/establishment.ts`) não bate com `restaurants.slug` no banco |
 | Campanhas e carrinho abandonado não disparam | faltou o `set_app_runtime_config` do passo 6 |
 | Pedido do iFood/Delivery Direto não entra | webhook ainda apontando para o projeto antigo (passo 8) |
