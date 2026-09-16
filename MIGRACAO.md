@@ -33,7 +33,7 @@ As 217 migrations foram **testadas replicando do zero** num PostgreSQL limpo:
 
 - Conta no [Supabase](https://supabase.com)
 - **Node 20 ou mais novo**
-- `psql` (pacote `postgresql-client`) para migrar os dados
+- `pg_dump`/`psql` **versão 15 ou mais nova** (o Ubuntu 22.04 traz a 14, que não serve — ver abaixo)
 - Uma chave de IA — [Google AI Studio](https://aistudio.google.com/apikey) tem cota grátis
 
 ### Numa VPS Ubuntu zerada
@@ -43,8 +43,27 @@ demais para o Vite 5 deste projeto. Use o repositório oficial da NodeSource:
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs postgresql-client
+NEEDRESTART_MODE=a apt install -y nodejs
 node -v    # tem que mostrar v20.x ou mais
+```
+
+**`pg_dump` precisa ser 15 ou mais novo.** O pacote `postgresql-client` do
+Ubuntu 22.04 instala a versão **14**, e o `pg_dump` se recusa a dumpar de um
+servidor mais novo que ele — o Supabase roda PostgreSQL 15/17. Ou seja: com a
+14 o passo 7 (migrar os dados) falha com *"aborting because of server version
+mismatch"*. Use o repositório oficial do PostgreSQL:
+
+```bash
+install -d /usr/share/postgresql-common/pgdg
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+  -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+  > /etc/apt/sources.list.d/pgdg.list
+apt update
+NEEDRESTART_MODE=a apt install -y postgresql-client-17
+
+pg_dump --version   # tem que mostrar 17.x
 ```
 
 ### CLI do Supabase
