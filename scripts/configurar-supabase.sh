@@ -42,6 +42,24 @@ else
   exit 1
 fi
 
+# ── 0. autenticação ──────────────────────────────────────────────────────────
+# `link` exige CLI autenticada. Numa VPS não há navegador para o fluxo normal
+# de login, então o caminho é um access token.
+if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  info "Verificando autenticação da CLI"
+  if ! "${SUPABASE[@]}" projects list >/dev/null 2>&1; then
+    die "a CLI do Supabase não está autenticada.
+      Gere um token em https://supabase.com/dashboard/account/tokens
+      (Generate new token) e rode, antes deste script:
+
+          export SUPABASE_ACCESS_TOKEN='sbp_seu_token_aqui'
+
+      O token fica só nesta sessão do terminal. Para não perder ao reconectar,
+      coloque a linha no ~/.bashrc."
+  fi
+  ok "CLI autenticada"
+fi
+
 # ── 1. link ──────────────────────────────────────────────────────────────────
 info "Ligando o repositório ao projeto $PROJECT_REF"
 "${SUPABASE[@]}" link --project-ref "$PROJECT_REF"

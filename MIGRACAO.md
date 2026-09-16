@@ -147,6 +147,17 @@ projeto **novo**. Se ficar com o do Lovable, ninguém consegue logar.
 
 ## 6. Subir banco e functions
 
+A CLI precisa estar autenticada. Numa VPS não há navegador, então use um
+access token — gere em
+[supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens):
+
+```bash
+export SUPABASE_ACCESS_TOKEN='sbp_seu_token_aqui'
+```
+
+O token vale só para a sessão atual do terminal; para não perder ao
+reconectar, coloque essa linha no `~/.bashrc`.
+
 ```bash
 npm install
 ./scripts/configurar-supabase.sh <SEU_PROJECT_REF>
