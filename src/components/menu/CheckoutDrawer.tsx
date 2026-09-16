@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { DiscountReward } from "./checkout/LoyaltyRewardNotification";
 
+import { novoId } from "@/lib/uuid";
 type CheckoutStep = "cart" | "delivery-type" | "address" | "payment" | "online-payment" | "summary";
 
 interface DeliveryZone {
@@ -247,7 +248,7 @@ export const CheckoutDrawer = ({
         // Geramos o id no cliente (UUID) para não depender de `.select()` de
         // retorno — que o RLS bloqueia para o cliente anônimo. O INSERT
         // anônimo escopado continua permitido.
-        const orderId = crypto.randomUUID();
+        const orderId = novoId();
         const { error: orderError } = await supabase
           .from("orders")
           .insert({ id: orderId, ...orderData });
@@ -269,7 +270,7 @@ export const CheckoutDrawer = ({
 
           // id gerado no cliente para não depender de `.select()` de retorno
           // (bloqueado pelo RLS no fluxo anônimo).
-          const orderItemId = crypto.randomUUID();
+          const orderItemId = novoId();
           const { error: itemError } = await supabase
             .from("order_items")
             .insert({

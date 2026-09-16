@@ -25,6 +25,7 @@ import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 import { normalizeSearch } from "@/lib/searchNormalize";
 
+import { novoId } from "@/lib/uuid";
 export default function DeliveryMenu() {
   const { slug: pathSlug } = useParams<{ slug: string }>();
   const restaurantSlug = resolveSlug(pathSlug);
@@ -325,7 +326,7 @@ export default function DeliveryMenu() {
 
   const handleAddToCart = (product: Product, selectedExtras: ProductExtra[], notes?: string, quantity?: number) => {
     const newItem: CartItem = {
-      id: crypto.randomUUID(),
+      id: novoId(),
       product,
       quantity: quantity || 1,
       extras: selectedExtras,

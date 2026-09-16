@@ -32,6 +32,7 @@ import ProductCard from "./ProductCard";
 import BulkDeleteProductsDialog from "./BulkDeleteProductsDialog";
 import { normalizeSearch } from "@/lib/searchNormalize";
 
+import { novoId } from "@/lib/uuid";
 interface Product {
   id: string;
   name: string;
@@ -350,7 +351,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
 
     const { data: ingredientsData } = await supabase.from("product_ingredients").select("*, stock_items(name, unit, price_per_unit)").eq("product_id", product.id);
     const formattedIngredients = ingredientsData?.map((ing: any) => ({
-      id: crypto.randomUUID(), stock_item_id: ing.stock_item_id, quantity: ing.quantity,
+      id: novoId(), stock_item_id: ing.stock_item_id, quantity: ing.quantity,
       stock_item_name: ing.stock_items?.name, stock_item_unit: ing.stock_items?.unit, stock_item_price: ing.stock_items?.price_per_unit
     })) || [];
 
@@ -360,14 +361,14 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
 
     extrasData?.forEach((extra: any) => {
       const ings = extra.product_extra_ingredients?.map((ing: any) => ({
-        id: crypto.randomUUID(), stock_item_id: ing.stock_item_id, quantity: ing.quantity,
+        id: novoId(), stock_item_id: ing.stock_item_id, quantity: ing.quantity,
         stock_item_name: ing.stock_items?.name, stock_item_unit: ing.stock_items?.unit, stock_item_price: ing.stock_items?.price_per_unit
       })) || [];
       if (extra.is_required) {
-        variationsFromDB.push({ id: crypto.randomUUID(), name: extra.name, description: extra.description || undefined, price: extra.price, pdv_code: extra.pdv_code || undefined, ingredients: ings });
+        variationsFromDB.push({ id: novoId(), name: extra.name, description: extra.description || undefined, price: extra.price, pdv_code: extra.pdv_code || undefined, ingredients: ings });
         if (variationsFromDB.length === 1) { setVariationMinSelection(extra.min_selection?.toString() || "1"); setVariationMaxSelection(extra.max_selection?.toString() || "1"); setVariationIsRequired(true); }
       } else {
-        extrasFromDB.push({ id: crypto.randomUUID(), name: extra.name, description: extra.description || undefined, price: extra.price, ingredients: ings, is_required: extra.is_required });
+        extrasFromDB.push({ id: novoId(), name: extra.name, description: extra.description || undefined, price: extra.price, ingredients: ings, is_required: extra.is_required });
       }
     });
 
@@ -377,7 +378,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
 
     const { data: groupsData } = await supabase.from("product_complement_groups").select("*, extra_categories(id, name, extra_category_items(id, name, price))").eq("product_id", product.id).order("display_order");
     const formattedGroups: LinkedComplementGroup[] = (groupsData || []).map((g: any, idx: number) => ({
-      id: crypto.randomUUID(), extra_category_id: g.extra_category_id, category_name: g.extra_categories?.name || "",
+      id: novoId(), extra_category_id: g.extra_category_id, category_name: g.extra_categories?.name || "",
       is_required: g.is_required || false, min_selection: g.min_selection || 0, max_selection: g.max_selection,
       display_order: g.display_order ?? idx,
       items: g.extra_categories?.extra_category_items || []
@@ -402,7 +403,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     if (!selectedStockItem || !ingredientQuantity) return;
     const stockItem = stockItems.find(s => s.id === selectedStockItem);
     if (!stockItem) return;
-    setIngredients([...ingredients, { id: crypto.randomUUID(), stock_item_id: selectedStockItem, quantity: parseFloat(ingredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
+    setIngredients([...ingredients, { id: novoId(), stock_item_id: selectedStockItem, quantity: parseFloat(ingredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
     setSelectedStockItem(""); setIngredientQuantity("");
   };
 
@@ -412,7 +413,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     if (!selectedVariationStockItem || !variationIngredientQuantity) return;
     const stockItem = stockItems.find(s => s.id === selectedVariationStockItem);
     if (!stockItem) return;
-    setVariationIngredients([...variationIngredients, { id: crypto.randomUUID(), stock_item_id: selectedVariationStockItem, quantity: parseFloat(variationIngredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
+    setVariationIngredients([...variationIngredients, { id: novoId(), stock_item_id: selectedVariationStockItem, quantity: parseFloat(variationIngredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
     setSelectedVariationStockItem(""); setVariationIngredientQuantity("");
   };
 
@@ -422,7 +423,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     if (!variationName) { toast.error("Informe o nome da variação"); return; }
     const localCodes = variations.map(v => v.pdv_code).filter(Boolean) as string[];
     const newPdvCode = await generateNextPdvCode(restaurantId, localCodes);
-    setVariations([...variations, { id: crypto.randomUUID(), name: variationName, description: variationDescription || undefined, price: parseFloat(variationPrice) || 0, pdv_code: newPdvCode, ingredients: [...variationIngredients] }]);
+    setVariations([...variations, { id: novoId(), name: variationName, description: variationDescription || undefined, price: parseFloat(variationPrice) || 0, pdv_code: newPdvCode, ingredients: [...variationIngredients] }]);
     setVariationName(""); setVariationDescription(""); setVariationPrice(""); setVariationIngredients([]);
   };
 
@@ -433,7 +434,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     if (!original) return;
     const localCodes = variations.map(v => v.pdv_code).filter(Boolean) as string[];
     const newPdvCode = await generateNextPdvCode(restaurantId, localCodes);
-    const copy = { ...original, id: crypto.randomUUID(), name: `${original.name} (cópia)`, pdv_code: newPdvCode, ingredients: original.ingredients.map(i => ({ ...i, id: crypto.randomUUID() })) };
+    const copy = { ...original, id: novoId(), name: `${original.name} (cópia)`, pdv_code: newPdvCode, ingredients: original.ingredients.map(i => ({ ...i, id: novoId() })) };
     setVariations([...variations, copy]);
     toast.success("Variação duplicada");
   };
@@ -451,7 +452,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
   const handleAddExtra = () => {
     if (!extraName || !extraPrice) { toast.error("Preencha nome e preço do complemento"); return; }
     if (extras.some(e => e.name.toLowerCase() === extraName.toLowerCase())) { toast.error("Já existe um complemento com este nome"); return; }
-    setExtras([...extras, { id: crypto.randomUUID(), name: extraName, description: extraDescription || undefined, price: parseFloat(extraPrice), ingredients: [...extraIngredients], is_required: extraIsRequired }]);
+    setExtras([...extras, { id: novoId(), name: extraName, description: extraDescription || undefined, price: parseFloat(extraPrice), ingredients: [...extraIngredients], is_required: extraIsRequired }]);
     setExtraName(""); setExtraDescription(""); setExtraPrice(""); setExtraIngredients([]); setExtraIsRequired(false);
   };
 
@@ -463,7 +464,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     const { data: itemsData, error } = await supabase.from("extra_category_items").select("id, name, price").eq("category_id", selectedComplementCategory);
     if (error) { toast.error("Erro ao buscar itens da categoria"); return; }
     setLinkedGroups([...linkedGroups, {
-      id: crypto.randomUUID(), extra_category_id: selectedComplementCategory, category_name: category.name,
+      id: novoId(), extra_category_id: selectedComplementCategory, category_name: category.name,
       is_required: groupIsRequired, min_selection: parseInt(groupMinSelection) || 0, max_selection: groupMaxSelection ? parseInt(groupMaxSelection) : null,
       display_order: linkedGroups.length,
       items: itemsData || [],
@@ -486,7 +487,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     if (!selectedExtraStockItem || !extraIngredientQuantity) return;
     const stockItem = stockItems.find(s => s.id === selectedExtraStockItem);
     if (!stockItem) return;
-    setExtraIngredients([...extraIngredients, { id: crypto.randomUUID(), stock_item_id: selectedExtraStockItem, quantity: parseFloat(extraIngredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
+    setExtraIngredients([...extraIngredients, { id: novoId(), stock_item_id: selectedExtraStockItem, quantity: parseFloat(extraIngredientQuantity), stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit }]);
     setSelectedExtraStockItem(""); setExtraIngredientQuantity("");
   };
 
@@ -500,7 +501,7 @@ const ProductsGrid = ({ restaurantId, isRestaurantOpen, onOpenDigitizer, onOpenI
     let imageUrl = productImageUrl;
     if (productImage) {
       const fileExt = productImage.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${novoId()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, productImage);
       if (uploadError) { toast.error("Erro ao fazer upload da imagem"); return; }
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);

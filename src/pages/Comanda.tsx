@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 
+import { novoId } from "@/lib/uuid";
 // Ícones por tipo de método
 const METHOD_ICONS: Record<string, any> = {
   cash: Banknote,
@@ -530,7 +531,7 @@ const Comanda = () => {
           comandaId = existingComanda.id;
         } else {
           // Criar nova comanda — id gerado no cliente (sem `.select()` de retorno).
-          const newComandaId = crypto.randomUUID();
+          const newComandaId = novoId();
           const { error: comandaError } = await supabase
             .from("comandas")
             .insert({
@@ -555,7 +556,7 @@ const Comanda = () => {
 
       // Criar pedido — id gerado no cliente (sem `.select()` de retorno,
       // bloqueado pelo RLS no fluxo anônimo).
-      const orderId = crypto.randomUUID();
+      const orderId = novoId();
       const { error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -574,7 +575,7 @@ const Comanda = () => {
 
       // Criar itens do pedido
       for (const item of cart) {
-        const orderItemId = crypto.randomUUID();
+        const orderItemId = novoId();
         const { error: itemError } = await supabase
           .from("order_items")
           .insert({

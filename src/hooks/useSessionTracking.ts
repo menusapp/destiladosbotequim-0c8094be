@@ -2,12 +2,13 @@ import { useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/types/menu";
 
+import { novoId } from "@/lib/uuid";
 const SESSION_KEY = "delivery-session-token";
 
 function getOrCreateSessionToken(): string {
   let token = localStorage.getItem(SESSION_KEY);
   if (!token) {
-    token = crypto.randomUUID();
+    token = novoId();
     localStorage.setItem(SESSION_KEY, token);
   }
   return token;

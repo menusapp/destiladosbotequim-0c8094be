@@ -9,6 +9,7 @@ import { Loader2, Copy, CheckCircle2, AlertCircle, CreditCard, Smartphone, Clock
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+import { copiarTexto } from "@/lib/clipboard";
 interface CartItemForPayment {
   id: string;
   name: string;
@@ -255,7 +256,7 @@ export const OnlinePaymentStep = ({
 
   const handleCopyPixCode = () => {
     if (pixQrCode) {
-      navigator.clipboard.writeText(pixQrCode);
+      copiarTexto(pixQrCode);
       toast.success("Código Pix copiado!");
     }
   };

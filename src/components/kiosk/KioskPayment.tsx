@@ -10,6 +10,7 @@ import { KioskCustomer } from "@/pages/Kiosk";
 import { KioskConfig, KioskPointTerminal } from "@/hooks/useKioskConfig";
 import { ConsumptionMode } from "./KioskConsumptionType";
 
+import { novoId } from "@/lib/uuid";
 type PointPaymentStatus = "idle" | "creating_payment" | "waiting_terminal" | "processing" | "paid" | "failed" | "canceled";
 
 interface Props {
@@ -179,7 +180,7 @@ export function KioskPayment({
 
       if (orderData?.table_id) {
         // id gerado no cliente (sem `.select()` de retorno, bloqueado pelo RLS).
-        const comandaId = crypto.randomUUID();
+        const comandaId = novoId();
         const { error: comandaError } = await supabase
           .from("comandas")
           .insert({
@@ -330,7 +331,7 @@ export function KioskPayment({
     setPointStatus("creating_payment");
 
     try {
-      const tempId = crypto.randomUUID();
+      const tempId = novoId();
 
       const { data: res } = await supabase.functions.invoke("mercadopago-point", {
         body: {

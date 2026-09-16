@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem, Product } from "@/types/menu";
 
+import { novoId } from "@/lib/uuid";
 /**
  * Ofertas de upsell da sacola ("peça junto com desconto").
  *
@@ -46,7 +47,7 @@ export function getUpsellPricing(offer: UpsellOffer): {
 export function buildUpsellCartItem(offer: UpsellOffer): CartItem {
   const { discountedPrice } = getUpsellPricing(offer);
   return {
-    id: crypto.randomUUID(),
+    id: novoId(),
     product: { ...offer.product, promotional_price: discountedPrice },
     quantity: 1,
     extras: [],

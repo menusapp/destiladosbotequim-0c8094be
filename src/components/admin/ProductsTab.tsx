@@ -31,6 +31,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { checkProductInActiveOrders } from "@/lib/dangerChecks";
 import { normalizeSearch } from "@/lib/searchNormalize";
 
+import { novoId } from "@/lib/uuid";
 interface Product {
   id: string;
   name: string;
@@ -298,7 +299,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     } else {
       // Adicionar novo adicional
       setExtras([...extras, {
-        id: crypto.randomUUID(),
+        id: novoId(),
         name: extraName,
         price: parseFloat(extraPrice),
         ingredients: [...extraIngredients],
@@ -335,7 +336,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     if (!stockItem) return;
     
     setExtraIngredients([...extraIngredients, {
-      id: crypto.randomUUID(),
+      id: novoId(),
       stock_item_id: selectedExtraStockItem,
       quantity: parseFloat(extraIngredientQuantity),
       stock_item_name: stockItem.name,
@@ -356,7 +357,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     if (!stockItem) return;
     
     setIngredients([...ingredients, {
-      id: crypto.randomUUID(),
+      id: novoId(),
       stock_item_id: selectedStockItem,
       quantity: parseFloat(ingredientQuantity),
       stock_item_name: stockItem.name,
@@ -413,7 +414,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
       setEditingCategoryItemIndex(null);
     } else {
       setCategoryItems([...categoryItems, {
-        id: crypto.randomUUID(),
+        id: novoId(),
         category_id: "",
         name: categoryItemName,
         price: parseFloat(categoryItemPrice),
@@ -451,7 +452,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     if (!stockItem) return;
     
     setCategoryItemIngredients([...categoryItemIngredients, {
-      id: crypto.randomUUID(),
+      id: novoId(),
       stock_item_id: selectedCategoryItemStockItem,
       quantity: parseFloat(categoryItemIngredientQuantity),
       stock_item_name: stockItem.name,
@@ -541,7 +542,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     // Adicionar os itens da categoria aos extras do produto
     const newExtras = data.map(item => {
       const ingredients = item.extra_category_item_ingredients?.map((ing: any) => ({
-        id: crypto.randomUUID(),
+        id: novoId(),
         stock_item_id: ing.stock_item_id,
         quantity: ing.quantity,
         stock_item_name: ing.stock_items?.name,
@@ -554,7 +555,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
       }, 0);
       
       return {
-        id: crypto.randomUUID(),
+        id: novoId(),
         name: item.name,
         price: item.price,
         ingredients,
@@ -624,7 +625,7 @@ const ProductsTab = ({ restaurantId, isRestaurantOpen }: { restaurantId: string;
     // Upload da imagem se houver
     if (productImage) {
       const fileExt = productImage.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${novoId()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('product-images')

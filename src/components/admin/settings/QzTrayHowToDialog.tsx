@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { copiarTexto } from "@/lib/clipboard";
 const PATHS = {
   windows: String.raw`C:\Program Files\QZ Tray\resources\override.crt`,
   mac: "/Applications/QZ Tray.app/Contents/Resources/override.crt",
@@ -42,7 +43,7 @@ const PathRow = ({ label, path }: { label: string; path: string }) => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(path);
+      await copiarTexto(path);
       setCopied(true);
       toast.success("Caminho copiado");
       setTimeout(() => setCopied(false), 1500);

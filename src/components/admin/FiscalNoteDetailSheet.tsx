@@ -7,6 +7,7 @@ import { Copy, Download, FileCode, CheckCircle2, Clock, AlertCircle, XCircle, Lo
 import { format } from "date-fns";
 import { toast } from "@/components/ui/sonner";
 
+import { copiarTexto } from "@/lib/clipboard";
 interface FiscalNoteDetail {
   id: string;
   order_id: string;
@@ -78,7 +79,7 @@ const FiscalNoteDetailSheet = ({ note, open, onClose }: Props) => {
 
   const copyKey = () => {
     if (note.nfe_key) {
-      navigator.clipboard.writeText(note.nfe_key.replace(/\D/g, ""));
+      copiarTexto(note.nfe_key.replace(/\D/g, ""));
       toast.success("Chave copiada!");
     }
   };

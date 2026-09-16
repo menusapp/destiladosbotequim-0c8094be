@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { copiarTexto } from "@/lib/clipboard";
 import {
   Monitor, Copy, ExternalLink, CreditCard, Banknote, QrCode,
   UtensilsCrossed, ShoppingBag, Truck, Store, Users, Gift, Tag, Percent, Timer, Loader2, Save,
@@ -415,7 +416,7 @@ export default function KioskSettings({ restaurantId }: Props) {
 
   const copyLink = () => {
     if (!kioskUrl) return;
-    navigator.clipboard.writeText(kioskUrl);
+    copiarTexto(kioskUrl);
     toast.success("Link copiado!");
   };
 

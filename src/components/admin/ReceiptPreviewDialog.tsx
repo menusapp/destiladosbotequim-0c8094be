@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Copy, Check, X, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { copiarTexto } from "@/lib/clipboard";
 import {
   buildReceiptPreview,
   type ReceiptPreviewResult,
@@ -66,7 +67,7 @@ export function ReceiptPreviewDialog({
   const copyContent = async () => {
     if (!data) return;
     try {
-      await navigator.clipboard.writeText(data.combined);
+      await copiarTexto(data.combined);
       setCopied(true);
       toast.success("Texto do cupom copiado");
       setTimeout(() => setCopied(false), 1500);

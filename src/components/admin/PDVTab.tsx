@@ -51,6 +51,7 @@ import { TableFilterChips } from "./pdv/mobile/TableFilterChips";
 import { cn } from "@/lib/utils";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
+import { copiarTexto } from "@/lib/clipboard";
 interface CartItem {
   productId: string;
   productName: string;
@@ -1144,7 +1145,7 @@ const PDVTab = ({ restaurantId, restaurantSlug: slugProp, pendingTableToOpen, on
   const handleCopyLink = (table: TableData) => {
     const url = getTableMenuUrl(table.table_number);
     if (!url) { toast.error("Slug do restaurante não encontrado"); return; }
-    navigator.clipboard.writeText(url);
+    copiarTexto(url);
     toast.success(`Link da Mesa ${table.table_number} copiado!`);
   };
 

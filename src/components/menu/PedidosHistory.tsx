@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { ReviewModal } from "./ReviewModal";
 import { toast } from "@/components/ui/sonner";
 
+import { novoId } from "@/lib/uuid";
 interface PedidosHistoryProps {
   customerCPF: string;
   restaurantId: string;
@@ -144,7 +145,7 @@ export const PedidosHistory = ({
 
   const handleReorder = (order: any) => {
     const items = order.order_items.map((item: any) => ({
-      id: crypto.randomUUID(),
+      id: novoId(),
       product: {
         id: item.products.id,
         name: item.products.name,

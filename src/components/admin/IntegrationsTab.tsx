@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
+import { copiarTexto } from "@/lib/clipboard";
 const SUPABASE_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -517,7 +518,7 @@ const IntegrationsTab = ({ restaurantId }: IntegrationsTabProps) => {
                       <Label className="text-xs text-muted-foreground">Seu código de verificação:</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <code className="text-lg font-bold tracking-widest">{userCode}</code>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText(userCode); toast.success("Código copiado!"); }}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { copiarTexto(userCode); toast.success("Código copiado!"); }}>
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       </div>

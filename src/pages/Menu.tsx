@@ -23,6 +23,7 @@ import { useSessionTracking } from "@/hooks/useSessionTracking";
 import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 import { normalizeSearch } from "@/lib/searchNormalize";
+import { novoId } from "@/lib/uuid";
 const Menu = () => {
   const { slug: pathSlug, tableNumber } = useParams();
   const restaurantSlug = resolveSlug(pathSlug);
@@ -770,7 +771,7 @@ const Menu = () => {
         // Criar nova comanda para este cliente (NÃO fechar as outras).
         // id gerado no cliente para não depender de `.select()` de retorno
         // (bloqueado pelo RLS no fluxo anônimo).
-        const newComandaId = crypto.randomUUID();
+        const newComandaId = novoId();
         const { error: comandaError } = await supabase
           .from("comandas")
           .insert({
@@ -899,7 +900,7 @@ const Menu = () => {
       if (existing) {
         return prev.map((item) => item.id === existing.id ? { ...item, quantity: item.quantity + quantity } : item);
       }
-      return [...prev, { id: crypto.randomUUID(), product, quantity, extras, notes }];
+      return [...prev, { id: novoId(), product, quantity, extras, notes }];
     });
     // Silenciado - sem toast ao adicionar ao carrinho
   }, []);

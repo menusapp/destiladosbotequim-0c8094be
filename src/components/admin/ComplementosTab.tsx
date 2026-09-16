@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { normalizeSearch } from "@/lib/searchNormalize";
 
+import { novoId } from "@/lib/uuid";
 interface StockItem { id: string; name: string; unit: string; price_per_unit: number; }
 interface CategoryItemIngredient { id: string; stock_item_id: string; quantity: number; stock_item_name?: string; stock_item_unit?: string; stock_item_price?: number; }
 interface CategoryItem { id: string; name: string; price: number; pdv_code?: string; ingredients: CategoryItemIngredient[]; is_active?: boolean | null; }
@@ -252,7 +253,7 @@ const ComplementosTab = ({ restaurantId, isRestaurantOpen, onOpenDigitizer }: Co
     const stockItem = stockItems.find(s => s.id === selectedStockItem);
     if (!stockItem) return;
     setItemIngredients([...itemIngredients, {
-      id: crypto.randomUUID(), stock_item_id: selectedStockItem, quantity: parseFloat(ingredientQuantity),
+      id: novoId(), stock_item_id: selectedStockItem, quantity: parseFloat(ingredientQuantity),
       stock_item_name: stockItem.name, stock_item_unit: stockItem.unit, stock_item_price: stockItem.price_per_unit,
     }]);
     setSelectedStockItem(""); setIngredientQuantity("");

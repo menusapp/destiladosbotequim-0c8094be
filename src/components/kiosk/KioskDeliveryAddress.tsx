@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Plus, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 
+import { novoId } from "@/lib/uuid";
 interface SavedAddress {
   id: string;
   street: string;
@@ -99,7 +100,7 @@ export function KioskDeliveryAddress({ primaryColor, customerCpf, customerName, 
         p_is_default: false,
       });
       if (error) throw error;
-      const id = (typeof newId === "string" ? newId : crypto.randomUUID());
+      const id = (typeof newId === "string" ? newId : novoId());
       const addr = { id, ...newAddr } as SavedAddress;
       onSelectAddress(formatAddress(addr));
     } catch (err: any) {

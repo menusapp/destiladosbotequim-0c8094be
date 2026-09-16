@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link2, Copy, Check, Sparkles, Globe } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { copiarTexto } from "@/lib/clipboard";
 import {
   getShareableMenuLink,
   getDirectMenuLink,
@@ -32,7 +33,7 @@ const ShareableLinksSection = ({ restaurantId }: ShareableLinksSectionProps) => 
 
   const copyToClipboard = async (key: string, value: string) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await copiarTexto(value);
       setCopiedKey(key);
       toast.success("Link copiado!");
       setTimeout(() => setCopiedKey(null), 2000);

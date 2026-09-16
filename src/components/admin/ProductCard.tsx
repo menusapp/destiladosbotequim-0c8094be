@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Copy, Trash2, Camera, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { novoId } from "@/lib/uuid";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +66,7 @@ const ProductCard = memo(({ product, onEdit, onToggleAvailable, onDuplicate, onD
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${novoId()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
       if (uploadError) { toast.error("Erro ao fazer upload da imagem"); return; }
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);

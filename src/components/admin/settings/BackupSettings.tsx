@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 
+import { novoId } from "@/lib/uuid";
 interface BackupSettingsProps {
   restaurantId: string;
 }
@@ -424,7 +425,7 @@ export default function BackupSettings({ restaurantId }: BackupSettingsProps) {
         const mapped = { ...record };
         // Generate new ID
         const oldId = mapped.id;
-        const newId = crypto.randomUUID();
+        const newId = novoId();
         idMap[oldId] = newId;
         mapped.id = newId;
         // Set restaurant_id to current

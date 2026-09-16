@@ -76,6 +76,7 @@ import {
 import { normalizeSearch } from "@/lib/searchNormalize";
 import { usePolling } from "@/hooks/usePolling";
 
+import { copiarTexto } from "@/lib/clipboard";
 interface Comanda {
   id: string;
   customer_name: string;
@@ -422,7 +423,7 @@ const TablesTab = ({ restaurantId }: { restaurantId: string }) => {
     e.stopPropagation();
     const link = `${window.location.origin}/${restaurantSlug}/mesa/${table.table_number}`;
     try {
-      await navigator.clipboard.writeText(link);
+      await copiarTexto(link);
       toast.success(`Link da Mesa ${table.table_number} copiado!`);
     } catch {
       const textArea = document.createElement("textarea");
@@ -531,7 +532,7 @@ const TablesTab = ({ restaurantId }: { restaurantId: string }) => {
 
   const handleCopyReservationLink = () => {
     const link = `${window.location.origin}/${restaurantSlug}/reservas`;
-    navigator.clipboard.writeText(link);
+    copiarTexto(link);
     toast.success("Link copiado!");
   };
 

@@ -18,6 +18,7 @@ import { clearSessionTimestamp } from "@/lib/sessionExpiry";
 import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
 import { TourButton } from "./tour/TourButton";
 
+import { copiarTexto } from "@/lib/clipboard";
 interface AdminHeaderProps {
   restaurantId: string;
   restaurantSlug: string;
@@ -74,7 +75,7 @@ export const AdminHeader = ({
   const menuUrl = `${window.location.origin}/${restaurantSlug}`;
 
   const handleCopyUrl = () => {
-    navigator.clipboard.writeText(menuUrl);
+    copiarTexto(menuUrl);
     toast.success("Link copiado!");
   };
 

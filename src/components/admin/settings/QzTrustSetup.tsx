@@ -41,6 +41,7 @@ import qz from "qz-tray";
 import { ensureQzConnected } from "@/lib/qzConnectionManager";
 import { getSavedQzPrinter } from "@/lib/qzPrinterConfig";
 
+import { copiarTexto } from "@/lib/clipboard";
 // Servimos o override.crt como arquivo estático em /qz-tray/override.crt.
 // Esse arquivo é EXATAMENTE o mesmo certificado público usado pelo backend
 // para assinar (QZ_CERTIFICATE), garantindo que o trust funcione.
@@ -114,8 +115,7 @@ export const QzTrustSetup = () => {
   };
 
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard
-      .writeText(text)
+    copiarTexto(text)
       .then(() => toast.success(`${label} copiado`))
       .catch(() => toast.error("Não foi possível copiar"));
   };
