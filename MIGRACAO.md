@@ -412,6 +412,7 @@ migração, mas valem uma passada depois:
 | Cardápio abre vazio | `ESTABLISHMENT.slug` (em `src/config/establishment.ts`) não bate com `restaurants.slug` no banco |
 | Campanhas e carrinho abandonado não disparam | faltou o `set_app_runtime_config` do passo 6 |
 | Pedido do iFood/Delivery Direto não entra | webhook ainda apontando para o projeto antigo (passo 8) |
+| `new row violates row-level security policy` ao cadastrar restaurante ou trocar a senha do CEO | faltavam policies de escrita em `restaurant_credentials` e `ceo_users` (corrigido na migration 20260916140000 — rode `supabase db push`) |
 | Qualquer ação no painel falha com erro genérico | preflight CORS: o `client.ts` manda o header `x-app-token` quando há sessão, e a function precisa listá-lo em `Access-Control-Allow-Headers` (corrigido nas 45) |
 | Function responde 401 | `verify_jwt` — confira se o `supabase/config.toml` subiu junto |
 | Digitalizar cardápio falha | `AI_API_KEY` não configurada |
