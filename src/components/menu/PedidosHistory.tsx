@@ -13,6 +13,7 @@ import { ReviewModal } from "./ReviewModal";
 import { toast } from "@/components/ui/sonner";
 
 import { novoId } from "@/lib/uuid";
+import { telefoneClienteSalvo } from "@/lib/customerPhone";
 interface PedidosHistoryProps {
   customerCPF: string;
   restaurantId: string;
@@ -48,9 +49,11 @@ export const PedidosHistory = ({
 
   const fetchOrders = async () => {
     try {
+      // Passa o telefone quando o cardápio já o conhece: a RPC então confere
+      // CPF + telefone em vez de só o CPF.
       const { data: rpcData, error } = await (supabase as any).rpc("get_customer_orders", {
         p_cpf: customerCPF,
-        p_phone: null,
+        p_phone: telefoneClienteSalvo(restaurantSlug),
       });
 
       if (error) throw error;
