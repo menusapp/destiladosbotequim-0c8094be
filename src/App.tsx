@@ -31,6 +31,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ESTABLISHMENT } from "@/config/establishment";
 import { MetaPixelRouteTracker } from "@/components/MetaPixelRouteTracker";
 
+import { SupabaseErrorToaster } from "@/components/SupabaseErrorToaster";
 const LandingDestilado = lazyWithRetry(() => import("./pages/LandingDestilado"));
 const LandingPage = lazyWithRetry(() => import("./pages/LandingPage"));
 const LandingPageV2 = lazyWithRetry(() => import("./pages/LandingPageV2"));
@@ -82,6 +83,7 @@ const RouteFallback = () => (
 
 const App = () => (
   <BrowserRouter>
+    <SupabaseErrorToaster />
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light">
         <TooltipProvider>

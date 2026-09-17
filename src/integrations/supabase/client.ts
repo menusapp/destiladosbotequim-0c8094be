@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 import { getSessionToken } from '@/lib/authSession';
+import { reportarErroSupabase } from '@/lib/supabaseErrorBus';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -40,7 +41,23 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
       headers.delete('Authorization');
     }
 
-    return fetch(input, { ...init, headers });
+    const metodo = init?.method
+      ?? (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET');
+    const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+
+    return fetch(input, { ...init, headers }).then((res) => {
+      // Rede de segurança: o supabase-js devolve `{ error }` em vez de lançar,
+      // então uma chamada que não olha o retorno falha em silêncio. Aqui, no
+      // transporte, toda resposta de erro é registrada e avisada — nenhuma
+      // tela pode esquecer. Ver src/lib/supabaseErrorBus.ts.
+      if (!res.ok) {
+        // clone() para não consumir o corpo que o supabase-js ainda vai ler
+        res.clone().text()
+          .then((corpo) => reportarErroSupabase(res.status, url, metodo, corpo))
+          .catch(() => reportarErroSupabase(res.status, url, metodo, ''));
+      }
+      return res;
+    });
   };
 }
 
