@@ -30,6 +30,11 @@ psql "$SUPABASE_DB_URL" -tAc \
    JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
    WHERE n.nspname='public' AND c.relkind IN ('r','v')" > /tmp/schema-real.txt
 
+psql "$SUPABASE_DB_URL" -tAc \
+  "SELECT DISTINCT p.proname FROM pg_proc p
+   JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public'" > /tmp/schema-funcoes.txt
+
 python3 - <<'PY'
 import re, sys
 
@@ -63,11 +68,31 @@ if colunas_faltando:
     for t, c in colunas_faltando:
         print(f"    \033[31m✗\033[0m {t}.{c}")
 
-if not tabelas_faltando and not colunas_faltando:
+# ── funções ──────────────────────────────────────────────────────────────
+ini = src.index("    Functions: {")
+fim = src.index("\n    Enums: {", ini)
+fn_esperadas = set(re.findall(r'^      ([a-z_0-9]+): \{', src[ini:fim], re.M))
+# Os nomes *_secured_impl_<oid> são gerados pela blindagem e carregam o OID do
+# banco: mudam de projeto para projeto e nunca coincidem. Não são divergência.
+fn_esperadas = {f for f in fn_esperadas if "_secured_impl_" not in f}
+
+fn_reais = set()
+for linha in open("/tmp/schema-funcoes.txt"):
+    if linha.strip():
+        fn_reais.add(linha.strip())
+
+funcoes_faltando = sorted(fn_esperadas - fn_reais)
+if funcoes_faltando:
+    print("\n  FUNÇÕES que o types.ts espera e o banco não tem:")
+    for f in funcoes_faltando:
+        print(f"    \033[31m✗\033[0m {f}()")
+
+if not tabelas_faltando and not colunas_faltando and not funcoes_faltando:
     print("\n  \033[32m✓\033[0m banco e types.ts batem — nenhuma divergência")
     sys.exit(0)
 
-print("\n  Cada item acima quebra silenciosamente a tela que o usa:")
-print("  o PostgREST recusa o SELECT inteiro e a lista aparece vazia.")
+print("\n  Cada item acima quebra a tela que o usa: coluna ausente faz o")
+print("  PostgREST recusar o SELECT inteiro (lista vazia, sem erro), e função")
+print("  ausente vira \'Could not find the function ... in the schema cache\'.")
 sys.exit(1)
 PY
