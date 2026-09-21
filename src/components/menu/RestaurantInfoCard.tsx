@@ -24,7 +24,7 @@ export const RestaurantInfoCard = ({
   minOrder,
   deliveryTime = "50-60 min",
   deliveryFee = 3.0,
-  primaryColor = "#fe9516",
+  primaryColor = "#184a2d",
   tableInfo,
 }: RestaurantInfoCardProps) => {
   const [rating, setRating] = useState<number>(0);

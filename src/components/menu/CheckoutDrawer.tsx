@@ -67,7 +67,7 @@ interface CheckoutDrawerProps {
   onAddressSelected?: (address: string | null, deliveryType?: string) => void;
 }
 
-const primaryColorFromRestaurant = (restaurant: any) => restaurant?.primary_color || "#fe9516";
+const primaryColorFromRestaurant = (restaurant: any) => restaurant?.primary_color || "#184a2d";
 
 export const CheckoutDrawer = ({
   open,

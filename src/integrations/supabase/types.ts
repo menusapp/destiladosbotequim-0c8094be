@@ -4012,6 +4012,7 @@ export type Database = {
           login_require_name: boolean | null
           login_require_phone: boolean | null
           logo_url: string | null
+          menu_background_color: string | null
           loyalty_enabled: boolean | null
           loyalty_points_per_real: number | null
           loyalty_real_per_point: number | null
@@ -4059,6 +4060,7 @@ export type Database = {
           login_require_name?: boolean | null
           login_require_phone?: boolean | null
           logo_url?: string | null
+          menu_background_color?: string | null
           loyalty_enabled?: boolean | null
           loyalty_points_per_real?: number | null
           loyalty_real_per_point?: number | null
@@ -4106,6 +4108,7 @@ export type Database = {
           login_require_name?: boolean | null
           login_require_phone?: boolean | null
           logo_url?: string | null
+          menu_background_color?: string | null
           loyalty_enabled?: boolean | null
           loyalty_points_per_real?: number | null
           loyalty_real_per_point?: number | null

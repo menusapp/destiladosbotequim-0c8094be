@@ -7,7 +7,7 @@ interface KioskIdleScreenProps {
 }
 
 export function KioskIdleScreen({ restaurant, onStart }: KioskIdleScreenProps) {
-  const color = restaurant?.primary_color || "#FF6B35";
+  const color = restaurant?.primary_color || "#184a2d";
 
   return (
     <div

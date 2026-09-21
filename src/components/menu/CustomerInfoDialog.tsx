@@ -30,7 +30,7 @@ const CustomerInfoDialog = ({
   open,
   onClose, 
   onSubmit, 
-  restaurantColor = "#FF6B35",
+  restaurantColor = "#184a2d",
   restaurantId,
   requireName = true,
   requirePhone = false,

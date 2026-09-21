@@ -391,7 +391,9 @@ export default function DeliveryMenu() {
   }
 
 
-  const primaryColor = restaurant.primary_color || "#fe9516";
+  const primaryColor = restaurant.primary_color || "#184a2d";
+  // Fundo do cardápio, configurável em Configurações → Logo & Cor Principal.
+  const menuBackground = (restaurant as any).menu_background_color || undefined;
 
   // Filtrar produtos vinculados a insumos inativos
   const activeCategories = categories.map(cat => ({
@@ -418,7 +420,7 @@ export default function DeliveryMenu() {
     : allProducts;
 
   return (
-    <div className="min-h-screen bg-background pb-14">
+    <div className="min-h-screen bg-background pb-14" style={{ backgroundColor: menuBackground }}>
       {activeTab === "menu" && (
         <>
           <div className="relative">

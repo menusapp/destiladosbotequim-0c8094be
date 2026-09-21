@@ -72,7 +72,7 @@ export default function Kiosk() {
   }, 0);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const primaryColor = restaurant?.primary_color || "#FF6B35";
+  const primaryColor = restaurant?.primary_color || "#184a2d";
   const loyaltyRealPerPoint = restaurant?.loyalty_real_per_point || 0.01;
 
   // Calculate coupon discount

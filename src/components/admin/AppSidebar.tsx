@@ -50,7 +50,7 @@ interface AppSidebarProps {
   onPrefetch?: (sectionId: string) => void;
 }
 
-export function AppSidebar({ activeSection, onSectionChange, hasNewOrders, hasNewBills, hasNewDeliveryOrders, hasNewLocalOrders, isSectionAllowed, hasActiveSubscription, staffRole, staffAllowedSections, primaryColor = "#FF6B35", onPrefetch }: AppSidebarProps) {
+export function AppSidebar({ activeSection, onSectionChange, hasNewOrders, hasNewBills, hasNewDeliveryOrders, hasNewLocalOrders, isSectionAllowed, hasActiveSubscription, staffRole, staffAllowedSections, primaryColor = "#184a2d", onPrefetch }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [configOpen, setConfigOpen] = useState(activeSection.startsWith("config-"));
@@ -141,7 +141,7 @@ export function AppSidebar({ activeSection, onSectionChange, hasNewOrders, hasNe
                                 ? "text-sidebar-foreground/50 hover:bg-muted"
                                 : "text-sidebar-foreground hover:bg-muted"
                           }`}
-                          style={activeSection === item.id ? { backgroundColor: '#FFE5D6', color: '#FF6B35' } : undefined}
+                          style={activeSection === item.id ? { backgroundColor: '#e8f0ea', color: '#184a2d' } : undefined}
                         >
                           <item.icon className="h-5 w-5" />
                           {!collapsed && <span>{item.label}</span>}
@@ -168,7 +168,7 @@ export function AppSidebar({ activeSection, onSectionChange, hasNewOrders, hasNe
                      <SidebarMenuButton
                       tooltip="Configurações"
                       className={`w-full h-10 px-3 rounded-button text-[15px] ${isConfigActive ? "font-medium" : "text-sidebar-foreground hover:bg-muted"}`}
-                      style={isConfigActive ? { backgroundColor: '#FFE5D6', color: '#FF6B35' } : undefined}
+                      style={isConfigActive ? { backgroundColor: '#e8f0ea', color: '#184a2d' } : undefined}
                     >
                       <Settings className="h-5 w-5" />
                       {!collapsed && (
@@ -196,7 +196,7 @@ export function AppSidebar({ activeSection, onSectionChange, hasNewOrders, hasNe
                                   ? "text-sidebar-foreground/50 hover:bg-muted"
                                   : "text-sidebar-foreground hover:bg-muted"
                             }`}
-                            style={activeSection === subItem.id ? { backgroundColor: '#FFE5D6', color: '#FF6B35' } : undefined}
+                            style={activeSection === subItem.id ? { backgroundColor: '#e8f0ea', color: '#184a2d' } : undefined}
                           >
                             <subItem.icon className="h-4 w-4" />
                             <span>{subItem.label}</span>

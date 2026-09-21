@@ -42,7 +42,7 @@ const ProductDetailDialog = ({
   open,
   onClose,
   onAddToCart,
-  restaurantColor = "#FF6B35"
+  restaurantColor = "#184a2d"
 }: ProductDetailDialogProps) => {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [notes, setNotes] = useState("");

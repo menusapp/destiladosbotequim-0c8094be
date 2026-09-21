@@ -1,13 +1,23 @@
 {
-  "name": "Menu's",
-  "short_name": "Menus",
+  "name": "Destilado Botequim",
+  "short_name": "Destilado",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#F97316",
-  "background_color": "#ffffff",
+  "theme_color": "#184a2d",
+  "background_color": "#f5ecdc",
   "orientation": "any",
   "icons": [
-    { "src": "/logo-menus.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/logo-menus.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/logo-menus-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-menus-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

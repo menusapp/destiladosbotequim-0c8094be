@@ -29,7 +29,7 @@ interface Rect {
 const PADDING = 6;
 const CARD_WIDTH = 340;
 const CARD_GAP = 16;
-const RING_COLOR = "#F97316"; // orange-500
+const RING_COLOR = "#184a2d"; // verde da marca
 
 function getRectFromTarget(target?: string): Rect | null {
   if (!target) return null;

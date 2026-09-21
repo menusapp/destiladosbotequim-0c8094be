@@ -22,6 +22,7 @@ interface Settings {
   logo_url: string | null;
   banner_url: string | null;
   primary_color: string;
+  menu_background_color: string;
   service_fee_enabled: boolean;
   service_fee_percentage: number;
   prep_time_minutes: number;
@@ -44,7 +45,8 @@ const CompanyDataSettings = ({ restaurantId }: { restaurantId: string }) => {
   const [settings, setSettings] = useState<Settings>({
     logo_url: null,
     banner_url: null,
-    primary_color: "#FF6B35",
+    primary_color: "#184a2d",
+    menu_background_color: "#ffffff",
     service_fee_enabled: false,
     service_fee_percentage: 10,
     prep_time_minutes: 30,
@@ -68,7 +70,7 @@ const CompanyDataSettings = ({ restaurantId }: { restaurantId: string }) => {
     try {
       const { data, error } = await supabase
         .from("restaurants")
-        .select("logo_url, banner_url, primary_color, service_fee_enabled, service_fee_percentage, prep_time_minutes, pickup_time_minutes, login_require_cpf, login_require_name, login_require_phone, login_require_birth_date, bill_request_enabled, show_prep_timer")
+        .select("logo_url, banner_url, primary_color, menu_background_color, service_fee_enabled, service_fee_percentage, prep_time_minutes, pickup_time_minutes, login_require_cpf, login_require_name, login_require_phone, login_require_birth_date, bill_request_enabled, show_prep_timer")
         .eq("id", restaurantId)
         .maybeSingle();
 
@@ -78,7 +80,8 @@ const CompanyDataSettings = ({ restaurantId }: { restaurantId: string }) => {
         setSettings({
           logo_url: data.logo_url,
           banner_url: data.banner_url,
-          primary_color: data.primary_color || "#FF6B35",
+          primary_color: data.primary_color || "#184a2d",
+          menu_background_color: (data as any).menu_background_color || "#ffffff",
           service_fee_enabled: data.service_fee_enabled || false,
           service_fee_percentage: data.service_fee_percentage || 10,
           prep_time_minutes: data.prep_time_minutes || 30,
@@ -153,6 +156,7 @@ const CompanyDataSettings = ({ restaurantId }: { restaurantId: string }) => {
         .from('restaurants')
         .update({
           primary_color: settings.primary_color,
+          menu_background_color: settings.menu_background_color,
           service_fee_enabled: settings.service_fee_enabled,
           service_fee_percentage: settings.service_fee_percentage,
           prep_time_minutes: settings.prep_time_minutes,
@@ -302,6 +306,51 @@ const CompanyDataSettings = ({ restaurantId }: { restaurantId: string }) => {
                       className="w-28 font-mono text-sm"
                     />
                     <div className="h-9 flex-1 rounded-md" style={{ backgroundColor: settings.primary_color }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Botões, preços e detalhes do cardápio.
+                  </p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Palette className="h-4 w-4 text-muted-foreground" />
+                    Cor de Fundo do Cardápio
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="color"
+                      value={settings.menu_background_color}
+                      onChange={(e) => setSettings({ ...settings, menu_background_color: e.target.value })}
+                      className="w-12 h-9 p-1 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={settings.menu_background_color}
+                      onChange={(e) => setSettings({ ...settings, menu_background_color: e.target.value })}
+                      className="w-28 font-mono text-sm"
+                    />
+                    <div
+                      className="h-9 flex-1 rounded-md border flex items-center justify-center gap-2"
+                      style={{ backgroundColor: settings.menu_background_color }}
+                    >
+                      <span className="text-xs" style={{ color: settings.primary_color }}>
+                        Exemplo de texto
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-muted-foreground">Sugestões:</span>
+                    {["#ffffff", "#f5ecdc", "#faf7f2", "#f4f4f5", "#111827"].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setSettings({ ...settings, menu_background_color: c })}
+                        className="h-6 w-6 rounded border hover:scale-110 transition-transform"
+                        style={{ backgroundColor: c }}
+                        title={c}
+                      />
+                    ))}
                   </div>
                 </div>
               </CardContent>

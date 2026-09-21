@@ -52,7 +52,7 @@ export function MobileBottomNav({
   hasNewDeliveryOrders,
   hasNewBills,
   hasNewLocalOrders,
-  primaryColor = "#FF6B35",
+  primaryColor = "#184a2d",
   staffRole,
   staffAllowedSections,
 }: MobileBottomNavProps) {

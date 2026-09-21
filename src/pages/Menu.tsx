@@ -129,7 +129,7 @@ const Menu = () => {
       const { data: restaurantData, error: restError } = await supabase
         .from("restaurants")
         .select(`
-          id, name, slug, is_open, logo_url, banner_url, primary_color, 
+          id, name, slug, is_open, logo_url, banner_url, primary_color, menu_background_color,
           prep_time_minutes, service_fee_enabled, service_fee_percentage,
           featured_section_enabled, featured_section_title,
           login_require_name, login_require_phone, login_require_birth_date,
@@ -939,7 +939,8 @@ const Menu = () => {
     );
   }
 
-  const primaryColor = restaurant.primary_color || "#fe9516";
+  const primaryColor = restaurant.primary_color || "#184a2d";
+  const menuBackground = (restaurant as any).menu_background_color || undefined;
 
   // Filtrar produtos vinculados a insumos inativos
   const activeCategories = categories.map(cat => ({
@@ -968,7 +969,7 @@ const Menu = () => {
   const cartItemCount = getTotalItemCount();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ backgroundColor: menuBackground }}>
       {/* Header area */}
       <div className="relative">
         <div className="h-48 overflow-hidden relative">

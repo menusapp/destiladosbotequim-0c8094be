@@ -132,7 +132,7 @@ const Comanda = () => {
   const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
   const [serviceFeePercentage, setServiceFeePercentage] = useState(10);
   const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000));
-  const [restaurantColor, setRestaurantColor] = useState("#FF6B35");
+  const [restaurantColor, setRestaurantColor] = useState("#184a2d");
   const [orderNotes, setOrderNotes] = useState("");
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
@@ -348,7 +348,7 @@ const Comanda = () => {
       setServiceFeeEnabled(restData.service_fee_enabled || false);
       setServiceFeePercentage(restData.service_fee_percentage || 10);
       setShowPrepTimer(restData.show_prep_timer ?? true);
-      setRestaurantColor(restData.primary_color || "#FF6B35");
+      setRestaurantColor(restData.primary_color || "#184a2d");
       setRestaurantId(restData.id);
       setRestaurantLogo(restData.logo_url);
       setRestaurantName(restData.name);

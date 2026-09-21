@@ -22,7 +22,7 @@ export function KioskIdentification({ restaurant, onIdentified, onBack }: Props)
   const [checking, setChecking] = useState(false);
   const [existing, setExisting] = useState<{ name: string; phone?: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const color = restaurant?.primary_color || "#FF6B35";
+  const color = restaurant?.primary_color || "#184a2d";
 
   const formatCPF = (v: string) => {
     const d = v.replace(/\D/g, "").slice(0, 11);
