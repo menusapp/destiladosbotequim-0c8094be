@@ -293,7 +293,7 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
           <div className="flex items-center justify-between py-2">
             <div>
               <Label>Imprimir ao aceitar pedido</Label>
-              <p className="text-sm text-muted-foreground">Ao aceitar um pedido, abre automaticamente o diálogo de impressão com a comanda formatada</p>
+              <p className="text-sm text-muted-foreground">Imprime a comanda sozinho quando você aceita um pedido. Pedidos que já entram aceitos (totem, PDV e mesa) são impressos na hora em que chegam.</p>
             </div>
             <Switch checked={webConfig.autoPrintOrders} onCheckedChange={(checked) => setWebConfig(prev => ({ ...prev, autoPrintOrders: checked }))} />
           </div>

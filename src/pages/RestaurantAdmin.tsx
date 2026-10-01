@@ -382,18 +382,32 @@ const RestaurantAdmin = () => {
         };
         setNotificationQueue(prev => [...prev, newNotification]);
 
-        try {
-          const { data: printerCfg } = await supabase
-            .from('printer_settings')
-            .select('auto_print_orders')
-            .eq('restaurant_id', restaurantId)
-            .maybeSingle();
-          if (printerCfg?.auto_print_orders) {
-            printDocument(orderData as any, restaurantId, { showToasts: false })
-              .catch(err => console.error('[auto-print] erro:', err));
+        // ---------- Impressão automática na CHEGADA do pedido ----------
+        // Só vale para pedidos que já chegam aceitos (totem, PDV, mesa): esses
+        // nunca passam pelo botão "Aceitar", então se não imprimirem aqui não
+        // imprimem em lugar nenhum.
+        //
+        // Pedido que chega como "pending" NÃO imprime aqui: ele imprime quando o
+        // operador aceita (useOrderStatusAdvance). Imprimir nos dois lugares
+        // sairia em duas vias, e imprimir na chegada significaria gastar bobina
+        // com pedido que ainda pode ser recusado.
+        if (status !== 'pending') {
+          try {
+            const { data: printerCfg, error: printerErr } = await supabase
+              .from('printer_settings')
+              .select('auto_print_orders')
+              .eq('restaurant_id', restaurantId)
+              .maybeSingle();
+            if (printerErr) {
+              console.error('[auto-print] falha ao ler auto_print_orders:', printerErr);
+            } else if (printerCfg?.auto_print_orders) {
+              // showToasts: true — sucesso continua silencioso, falha aparece.
+              printDocument(orderData as any, restaurantId, { showToasts: true })
+                .catch(err => console.error('[auto-print] erro:', err));
+            }
+          } catch (err) {
+            console.error('[auto-print] falha inesperada:', err);
           }
-        } catch (err) {
-          console.error('[auto-print] falha ao ler printer_settings:', err);
         }
 
         setNotifiedOrders(new Set(notifiedOrdersRef.current));

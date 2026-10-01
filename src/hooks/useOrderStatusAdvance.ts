@@ -308,15 +308,54 @@ export function useOrderStatusAdvance(restaurantId: string) {
       // WhatsApp notification via unified engine (fire-and-forget)
       sendWhatsAppNotification(order, newStatus, reason);
 
-      // Accept: mark table occupied + auto-print
-      if (newStatus === "accepted") {
+      // ---------- Efeitos de ACEITAR o pedido ----------
+      // Clicar em "Aceitar" num pedido pendente manda ele direto para
+      // "preparing", não para "accepted" (ver getNextStatus: aceitar e entrar em
+      // preparo são um único passo). A condição aqui olhava só "accepted", então
+      // o botão Aceitar NÃO ocupava a mesa e NÃO imprimia — só o aceite
+      // automático, que passa "accepted" explicitamente, funcionava.
+      //
+      // Exigir que o pedido ESTAVA em "pending" é o que evita repetir os efeitos
+      // quando um pedido já aceito avança para "preparing" (transição que existe
+      // no fallback de `case "accepted"`).
+      const estaAceitandoPedido =
+        order.status === "pending" &&
+        (newStatus === "accepted" || newStatus === "preparing");
+
+      if (estaAceitandoPedido) {
         if (order.order_type === "local" && order.table_id) {
           await supabase.from("tables").update({ is_occupied: true, occupied_at: new Date().toISOString(), occupied_by: order.customer_name }).eq("id", order.table_id);
         }
         try {
-          const { data: printerConfig } = await supabase.from("printer_settings").select("auto_print_orders").eq("restaurant_id", restaurantId).maybeSingle();
-          if (printerConfig?.auto_print_orders) await printDocument(order as any, restaurantId, { showToasts: false });
-        } catch (printErr) { console.error("Auto-print error:", printErr); }
+          const { data: printerConfig, error: printerErr } = await supabase
+            .from("printer_settings")
+            .select("auto_print_orders")
+            .eq("restaurant_id", restaurantId)
+            .maybeSingle();
+
+          if (printerErr) {
+            // Não dá para distinguir "desligado" de "não consegui ler" em
+            // silêncio: se a leitura falha, o operador precisa saber, senão fica
+            // esperando um cupom que nunca vem.
+            console.error("[auto-print] falha ao ler auto_print_orders:", printerErr);
+            toast.error("Não foi possível verificar a impressão automática", {
+              description: "O pedido foi aceito, mas o cupom não saiu. Imprima manualmente.",
+              duration: 8000,
+            });
+          } else if (printerConfig?.auto_print_orders) {
+            // showToasts: true — o sucesso continua silencioso (printDocument não
+            // avisa quando dá certo), mas a falha aparece. Antes era `false`, o
+            // que escondia "nenhuma impressora configurada" e "QZ Tray fechado":
+            // a impressão simplesmente não acontecia, sem nenhum aviso.
+            await printDocument(order as any, restaurantId, { showToasts: true });
+          }
+        } catch (printErr) {
+          console.error("[auto-print] erro inesperado:", printErr);
+          toast.error("Erro na impressão automática", {
+            description: printErr instanceof Error ? printErr.message : String(printErr),
+            duration: 8000,
+          });
+        }
       }
 
       // Marketing trigger + review request on finalization
