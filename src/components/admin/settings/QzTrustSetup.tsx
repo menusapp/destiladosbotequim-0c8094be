@@ -42,10 +42,17 @@ import { ensureQzConnected } from "@/lib/qzConnectionManager";
 import { getSavedQzPrinter } from "@/lib/qzPrinterConfig";
 
 import { copiarTexto } from "@/lib/clipboard";
-// Servimos o override.crt como arquivo estático em /qz-tray/override.crt.
-// Esse arquivo é EXATAMENTE o mesmo certificado público usado pelo backend
-// para assinar (QZ_CERTIFICATE), garantindo que o trust funcione.
-const OVERRIDE_CRT_URL = "/qz-tray/override.crt";
+// O override.crt vem da edge function `qz-cert`, que devolve o secret
+// QZ_CERTIFICATE — o MESMO par de chaves que a `qz-sign` usa para assinar.
+//
+// Antes isso era um arquivo estático em /qz-tray/override.crt, e ali estava o
+// "QZ Tray Demo Cert" da QZ Industries. Instalar aquele arquivo com uma chave
+// privada própria configurada faz o QZ Tray rejeitar TODAS as assinaturas: o
+// certificado instalado não corresponde a quem assinou. Buscar da função
+// elimina a possibilidade de os dois saírem de sincronia.
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+const OVERRIDE_CRT_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/qz-cert` : "";
 
 const PATHS = {
   windows: String.raw`C:\Program Files\QZ Tray\resources\override.crt`,
@@ -81,13 +88,20 @@ export const QzTrustSetup = () => {
   const [testError, setTestError] = useState<string>("");
   const [testStartedAt, setTestStartedAt] = useState<number | null>(null);
 
-  /** Baixa o override.crt oficial (servido estaticamente). */
+  /** Baixa o certificado público do backend como override.crt. */
   const handleDownloadCert = async () => {
     setDownloading(true);
     try {
-      console.log("🔐 [QZ Trust] Baixando override.crt oficial...");
+      if (!OVERRIDE_CRT_URL) throw new Error("VITE_SUPABASE_URL não configurada");
+      console.log("🔐 [QZ Trust] Buscando o certificado do backend (qz-cert)...");
       const res = await fetch(OVERRIDE_CRT_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        throw new Error(
+          res.status === 500
+            ? "O secret QZ_CERTIFICATE não está configurado no Supabase. Cadastre-o antes de baixar o certificado."
+            : `qz-cert respondeu HTTP ${res.status}`,
+        );
+      }
       const pem = await res.text();
       if (!pem.includes("BEGIN CERTIFICATE")) {
         throw new Error("Certificado em formato inválido");
