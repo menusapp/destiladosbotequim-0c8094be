@@ -97,8 +97,20 @@ export const QzTraySection = () => {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[QZ] connect error:", msg);
       setStatus("error");
+      // A causa mais comum NÃO é o QZ Tray estar fechado: é a página estar em
+      // HTTP numa origem pública. O navegador proíbe esse tipo de página de
+      // falar com localhost (Private Network Access), então a conexão falha
+      // mesmo com o QZ rodando. `isSecureContext` distingue os dois casos sem
+      // chute — e é a mesma coisa que quebra crypto.randomUUID e a cópia de
+      // links, então vale dizer ao usuário o que realmente resolve.
+      const contextoInseguro =
+        typeof window !== "undefined" && !window.isSecureContext;
+
       toast.error("Falha ao conectar ao QZ Tray", {
-        description: "Verifique se o QZ Tray está instalado e em execução.",
+        description: contextoInseguro
+          ? `A página está em HTTP (${window.location.origin}). O navegador bloqueia páginas inseguras de acessarem o QZ Tray em localhost — ele pode estar rodando normalmente. Solução: publicar o sistema em HTTPS com domínio próprio. Detalhe técnico: ${msg}`
+          : `O QZ Tray parece não estar respondendo. Confira se está aberto (ícone ao lado do relógio) e tente de novo. Detalhe técnico: ${msg}`,
+        duration: 20000,
       });
     }
   };
