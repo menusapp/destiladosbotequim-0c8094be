@@ -22,6 +22,7 @@ import { OrderDetailModal } from "./OrderDetailModal";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { printDocument } from "@/lib/printDispatcher";
+import { useCargaInicial } from "@/hooks/useCargaInicial";
 import { ReceiptPreviewDialog } from "./ReceiptPreviewDialog";
 import { useStaffOrderPermissions } from "@/hooks/useStaffOrderPermissions";
 import { OrderCard } from "./orders/OrderCard";
@@ -112,6 +113,13 @@ const UnifiedOrdersTab = ({ restaurantId, pendingOrderToOpen, onOrderOpened, sho
   const [pendingDateRange, setPendingDateRange] = useState<DateRange | undefined>();
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
+
+  // O placeholder "Carregando pedidos..." só aparece na primeira carga e quando
+  // o período muda. Os refetches do Realtime/polling atualizam a lista em
+  // silêncio, sem desmontar a tela (era a origem do flick a cada ciclo).
+  const primeiraCarga = useCargaInicial(
+    `${dateRange.from.getTime()}-${dateRange.to.getTime()}`
+  );
 
   // Initial load + refetch when date range changes
   useEffect(() => {
@@ -291,7 +299,7 @@ const UnifiedOrdersTab = ({ restaurantId, pendingOrderToOpen, onOrderOpened, sho
   const fetchOrdersRef = useRef<() => void>(() => {});
 
   const fetchOrders = async () => {
-    setLoading(true);
+    if (primeiraCarga.pendente()) setLoading(true);
     const { data, error } = await supabase
       .from("orders")
       .select(`id, daily_order_number, status, created_at, customer_name, customer_cpf, delivery_type, order_type, delivery_address, delivery_phone, notes, payment_type, payment_brand, delivery_fee, service_fee, coupon_discount, coupon_code, loyalty_points_used, ifood_source, ifood_order_id, ifood_display_id, ifood_merchant_id, dd_source, dd_order_id, dd_scheduled_for, cancellation_reason, table_id, tables(table_number), order_items(id, quantity, price_at_order, notes, products(name), order_item_extras(price_at_order, extra_name, product_extras(name)))`)
@@ -301,6 +309,7 @@ const UnifiedOrdersTab = ({ restaurantId, pendingOrderToOpen, onOrderOpened, sho
       .lte("created_at", dateRange.to.toISOString())
       .order("created_at", { ascending: false });
     if (!error) setOrders(data || []);
+    primeiraCarga.concluir();
     setLoading(false);
   };
   fetchOrdersRef.current = fetchOrders;

@@ -24,6 +24,8 @@ interface WebPrinterConfig {
   printCopies: number;
   supportsAutoCut: boolean;
   printMethod: PrintMethod;
+  /** Imprimir também a via da cozinha (só afeta a impressão via QZ Tray). */
+  printKitchenCopy: boolean;
 }
 
 const FONT_OPTIONS = [
@@ -53,6 +55,7 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
     printCopies: 1,
     supportsAutoCut: false,
     printMethod: 'pdf',
+    printKitchenCopy: true,
   });
 
   useEffect(() => {
@@ -78,6 +81,8 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
           printCopies: (data as any).print_copies || 1,
           supportsAutoCut: Boolean((data as any).supports_auto_cut),
           printMethod: rawMethod === 'qz_tray' ? 'qz_tray' : 'pdf',
+          // Só desliga quando o banco diz explicitamente `false`.
+          printKitchenCopy: data.print_kitchen_copy !== false,
         });
       }
     } catch (error) {
@@ -101,6 +106,7 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
           print_copies: webConfig.printCopies,
           supports_auto_cut: webConfig.supportsAutoCut,
           print_method: webConfig.printMethod,
+          print_kitchen_copy: webConfig.printKitchenCopy,
           updated_at: new Date().toISOString(),
         } as any, { onConflict: 'restaurant_id' });
       if (error) throw error;
@@ -320,6 +326,24 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
               <p className="text-sm text-muted-foreground">Envia comando de corte entre vias (impressoras térmicas compatíveis)</p>
             </div>
             <Switch checked={webConfig.supportsAutoCut} onCheckedChange={(checked) => setWebConfig(prev => ({ ...prev, supportsAutoCut: checked }))} />
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <Label>Imprimir via da cozinha</Label>
+              <p className="text-sm text-muted-foreground">
+                {webConfig.printKitchenCopy
+                  ? 'Ligado: a cada impressão de pedido saem duas vias — a do cliente e a da cozinha (com corte entre elas).'
+                  : 'Desligado: sai apenas a via do cliente.'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vale para a impressão direta via QZ Tray.
+              </p>
+            </div>
+            <Switch
+              checked={webConfig.printKitchenCopy}
+              onCheckedChange={(checked) => setWebConfig(prev => ({ ...prev, printKitchenCopy: checked }))}
+            />
           </div>
 
           <Button variant="outline" onClick={testWebPrint} disabled={testing === 'web'}>

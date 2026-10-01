@@ -13,6 +13,7 @@ import { CalendarIcon, Plus, ArrowUpCircle, ArrowDownCircle } from "lucide-react
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { useCargaInicial } from "@/hooks/useCargaInicial";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
@@ -61,8 +62,14 @@ export default function StockMovementsTab({ restaurantId }: StockMovementsTabPro
     fetchStockItems();
   }, [restaurantId]);
 
+  // Placeholder apenas na primeira carga e quando o período muda; os refetches
+  // do Realtime/polling atualizam a tabela sem remontá-la (evita o flick).
+  const primeiraCarga = useCargaInicial(
+    `${dateRange.from.getTime()}-${dateRange.to.getTime()}`
+  );
+
   const fetchMovements = useCallback(async () => {
-    setLoading(true);
+    if (primeiraCarga.pendente()) setLoading(true);
 
     const { data, error } = await supabase
       .from("stock_movements")
@@ -84,13 +91,15 @@ export default function StockMovementsTab({ restaurantId }: StockMovementsTabPro
     if (error) {
       console.error("Erro ao carregar movimentações:", error);
       toast.error("Erro ao carregar movimentações");
+      primeiraCarga.concluir();
       setLoading(false);
       return;
     }
 
     setMovements(data || []);
+    primeiraCarga.concluir();
     setLoading(false);
-  }, [restaurantId, dateRange]);
+  }, [restaurantId, dateRange, primeiraCarga]);
 
   useEffect(() => {
     fetchMovements();

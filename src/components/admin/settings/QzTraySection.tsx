@@ -36,6 +36,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import qz from "qz-tray";
+import { PREFIXO_CP850, viaEscposParaQz } from "@/lib/escposEncoding";
 import {
   getSavedQzPrinter,
   setSavedQzPrinter,
@@ -46,10 +47,11 @@ import { ensureQzConnected } from "@/lib/qzConnectionManager";
 type ConnStatus = "idle" | "connecting" | "connected" | "error";
 
 const SAMPLE_TEXT = [
-  "Menu's Teste (QZ Tray)",
+  PREFIXO_CP850 + "Menu's Teste (QZ Tray)",
   "------------------------",
-  "Conexao OK",
-  "Impressao funcionando",
+  "Conexão OK",
+  "Impressão funcionando",
+  "Acentuação: ãõáéíóúâêôç ÃÕÁÉÍÓÚÂÊÔÇ",
   "",
   "",
   "",
@@ -153,9 +155,7 @@ export const QzTraySection = () => {
     try {
       await ensureConnected();
       const config = qz.configs.create(selected);
-      await qz.print(config, [
-        { type: "raw", format: "plain", data: SAMPLE_TEXT },
-      ]);
+      await qz.print(config, [viaEscposParaQz(SAMPLE_TEXT)]);
       toast.success("Teste enviado para impressão");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

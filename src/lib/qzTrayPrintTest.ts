@@ -12,6 +12,7 @@
  */
 
 import qz from "qz-tray";
+import { PREFIXO_CP850, viaEscposParaQz } from "@/lib/escposEncoding";
 
 export interface QzPrintTestResult {
   success: boolean;
@@ -20,10 +21,10 @@ export interface QzPrintTestResult {
 }
 
 const TEST_TEXT = [
-  "Menu's Teste",
+  PREFIXO_CP850 + "Menu's Teste",
   "Pedido #123",
   "Cliente: Teste",
-  "1x X-Bacon",
+  "1x Porção de Açúcar — ãõç",
   "",
   "",
   "",
@@ -61,13 +62,7 @@ export async function testPrintQz(
 
     const config = qz.configs.create(usedPrinter);
 
-    const data = [
-      {
-        type: "raw",
-        format: "plain",
-        data: TEST_TEXT,
-      },
-    ];
+    const data = [viaEscposParaQz(TEST_TEXT)];
 
     console.log("📤 Enviando texto para impressão:");
     console.log(TEST_TEXT);

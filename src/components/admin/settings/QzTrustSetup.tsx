@@ -38,6 +38,7 @@ import {
   FileKey,
 } from "lucide-react";
 import qz from "qz-tray";
+import { PREFIXO_CP850, viaEscposParaQz } from "@/lib/escposEncoding";
 import { ensureQzConnected } from "@/lib/qzConnectionManager";
 import { getSavedQzPrinter } from "@/lib/qzPrinterConfig";
 
@@ -69,12 +70,13 @@ type TestStatus =
   | "error";
 
 const SAMPLE = [
-  "================================",
-  "  Menu's - Teste de Impressao",
+  PREFIXO_CP850 + "================================",
+  "  Menu's - Teste de Impressão",
   "================================",
   "",
-  "Impressao automatica OK!",
+  "Impressão automática OK!",
   "QZ Tray configurado corretamente.",
+  "Acentuação: ãõáéíóúâêôç ÃÕÁÉÍÓÚÂÊÔÇ",
   "",
   new Date().toLocaleString("pt-BR"),
   "",
@@ -160,9 +162,7 @@ export const QzTrustSetup = () => {
 
       setTestStatus("printing");
       const config = qz.configs.create(printer);
-      await qz.print(config, [
-        { type: "raw", format: "plain", data: SAMPLE },
-      ]);
+      await qz.print(config, [viaEscposParaQz(SAMPLE)]);
 
       const totalElapsed = Date.now() - startedAt;
       console.log(`🖨️ [QZ Trust] Impresso em ${totalElapsed}ms`);

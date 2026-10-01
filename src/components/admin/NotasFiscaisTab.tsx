@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { useCargaInicial } from "@/hooks/useCargaInicial";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,8 +80,14 @@ const NotasFiscaisTab = ({ restaurantId }: { restaurantId: string }) => {
   const [exportDialogKey, setExportDialogKey] = useState(0);
   const [exporting, setExporting] = useState(false);
 
+  // Placeholder apenas na primeira carga e quando período/filtro mudam; os
+  // refetches do Realtime/polling atualizam a tabela sem remontá-la.
+  const primeiraCarga = useCargaInicial(
+    `${restaurantId}|${statusFilter}|${dateRange.from.getTime()}-${dateRange.to.getTime()}`
+  );
+
   const fetchNotes = useCallback(async () => {
-    setLoading(true);
+    if (primeiraCarga.pendente()) setLoading(true);
     try {
       let query = supabase
         .from("order_fiscal_notes")
@@ -111,9 +118,10 @@ const NotasFiscaisTab = ({ restaurantId }: { restaurantId: string }) => {
       console.error("Erro ao buscar notas fiscais:", error);
       toast.error("Erro ao carregar notas fiscais");
     } finally {
+      primeiraCarga.concluir();
       setLoading(false);
     }
-  }, [restaurantId, dateRange, statusFilter]);
+  }, [restaurantId, dateRange, statusFilter, primeiraCarga]);
 
   useEffect(() => {
     fetchNotes();

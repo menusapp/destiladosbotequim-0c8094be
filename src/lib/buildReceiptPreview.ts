@@ -115,14 +115,34 @@ function labeled(label: string, value: string, width: number): string {
   return out;
 }
 
-async function fetchRestaurantName(orderId: string): Promise<string> {
+/**
+ * Nome da loja + se a via da cozinha está habilitada — o preview precisa
+ * refletir exactamente o que a impressora vai receber, então lê a mesma
+ * preferência (`printer_settings.print_kitchen_copy`) que printOrderWithQz.
+ */
+async function fetchContextoDaLoja(
+  orderId: string
+): Promise<{ nome: string; imprimirViaCozinha: boolean }> {
   const { data } = await supabase
     .from("orders")
     .select("restaurant_id, restaurants:restaurant_id(name)")
     .eq("id", orderId)
     .single();
   const name = (data as any)?.restaurants?.name;
-  return typeof name === "string" && name.length > 0 ? name : "Loja";
+  const nome = typeof name === "string" && name.length > 0 ? name : "Loja";
+  const restaurantId = data?.restaurant_id ?? null;
+
+  if (!restaurantId) return { nome, imprimirViaCozinha: true };
+
+  const { data: cfg, error } = await supabase
+    .from("printer_settings")
+    .select("print_kitchen_copy")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  // Qualquer falha de leitura → assume habilitada, igual à impressão real.
+  if (error || !cfg) return { nome, imprimirViaCozinha: true };
+  return { nome, imprimirViaCozinha: cfg.print_kitchen_copy !== false };
 }
 
 const dblWidth = (width: number) => Math.max(10, Math.floor(width / 2));
@@ -369,6 +389,8 @@ function buildKitchenPreview(order: OrderForPrinting, width: number): string {
 export interface ReceiptPreviewResult {
   customer: string;
   kitchen: string;
+  /** false quando a via da cozinha está desligada em Configurações → Impressoras. */
+  kitchenEnabled: boolean;
   combined: string;
   storeName: string;
   orderId: string;
@@ -382,17 +404,21 @@ export async function buildReceiptPreview(
   widthLabel: ReceiptWidth = "80mm"
 ): Promise<ReceiptPreviewResult> {
   const width = WIDTH_COLUMNS[widthLabel];
-  const [order, storeName] = await Promise.all([
+  const [order, loja] = await Promise.all([
     fetchOrderForPrinting(orderId),
-    fetchRestaurantName(orderId),
+    fetchContextoDaLoja(orderId),
   ]);
+  const storeName = loja.nome;
   const customer = buildCustomerPreview(order, storeName, width);
   const kitchen = buildKitchenPreview(order, width);
   const cutMark = buildCutMark(width);
   return {
     customer,
     kitchen,
-    combined: customer + cutMark + kitchen + cutMark,
+    kitchenEnabled: loja.imprimirViaCozinha,
+    combined: loja.imprimirViaCozinha
+      ? customer + cutMark + kitchen + cutMark
+      : customer + cutMark,
     storeName,
     orderId,
     lineWidth: width,

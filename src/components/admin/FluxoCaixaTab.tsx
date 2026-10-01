@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { useCargaInicial } from "@/hooks/useCargaInicial";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,8 +133,12 @@ export default function FluxoCaixaTab({ restaurantId }: FluxoCaixaTabProps) {
     }
   }, [currentSession]);
 
+  // O caixa é a tela mais atualizada do painel (Realtime + polling). Mostrar o
+  // placeholder a cada ciclo remontava tudo — daí o flick. Agora só na entrada.
+  const primeiraCarga = useCargaInicial(restaurantId);
+
   const fetchCurrentSession = async () => {
-    setLoading(true);
+    if (primeiraCarga.pendente()) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("cash_register_sessions")
@@ -176,6 +181,7 @@ export default function FluxoCaixaTab({ restaurantId }: FluxoCaixaTabProps) {
     } catch (error: any) {
       toast.error("Erro ao buscar sessão de caixa: " + error.message);
     } finally {
+      primeiraCarga.concluir();
       setLoading(false);
     }
   };

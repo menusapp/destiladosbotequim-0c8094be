@@ -146,7 +146,10 @@ export function ReceiptPreviewDialog({
               <span className="text-xs text-muted-foreground hidden sm:inline">
                 Loja: <span className="font-medium">{data.storeName}</span> ·
                 Pedido{" "}
-                <span className="font-mono">{data.orderId.slice(0, 8)}</span>
+                <span className="font-mono">{data.orderId.slice(0, 8)}</span> ·{" "}
+                {data.kitchenEnabled
+                  ? "2 vias (cliente + cozinha)"
+                  : "1 via (apenas cliente)"}
               </span>
             )}
             <Button

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Printer, Plug, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import qz from "qz-tray";
+import { PREFIXO_CP850, viaEscposParaQz } from "@/lib/escposEncoding";
 import {
   markQzConfigured,
   setSavedQzPrinter,
@@ -47,9 +48,10 @@ interface Props {
 }
 
 const SAMPLE_TEXT = [
-  "Menu's - Teste de impressao",
+  PREFIXO_CP850 + "Menu's - Teste de impressão",
   "----------------------------",
   "Impressora configurada com sucesso!",
+  "Acentuação: ãõáéíóúâêôç ÃÕÁÉÍÓÚÂÊÔÇ",
   "",
   "",
   "",
@@ -108,7 +110,7 @@ export const QzOnboardingDialog = ({ open, onClose }: Props) => {
     try {
       await ensureQzConnected();
       const config = qz.configs.create(selected);
-      await qz.print(config, [{ type: "raw", format: "plain", data: SAMPLE_TEXT }]);
+      await qz.print(config, [viaEscposParaQz(SAMPLE_TEXT)]);
       setSavedQzPrinter(selected);
       markQzConfigured();
       setStep("done");

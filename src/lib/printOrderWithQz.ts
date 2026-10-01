@@ -2,8 +2,11 @@
  * Impressão térmica profissional via QZ Tray (ESC/POS).
  *
  * - Usa fetchOrderForPrinting() para carregar o pedido completo.
- * - Gera DUAS vias (CLIENTE e COZINHA) com comandos ESC/POS.
+ * - Gera a via do CLIENTE e, se habilitada em Configurações → Impressoras
+ *   (`printer_settings.print_kitchen_copy`), também a via da COZINHA.
  * - Aplica CORTE entre as vias e ao final.
+ * - Converte o texto para bytes CP850 em JS (ver `escposEncoding.ts`), para que
+ *   acentos e cedilha saiam corretos em qualquer máquina.
  * - NÃO altera a impressão atual (window.print continua intacto).
  *
  * ⚠️ Compatibilidade:
@@ -21,6 +24,7 @@ import {
   type OrderForPrinting,
 } from "@/lib/fetchOrderForPrinting";
 import { resolveQzPrinter } from "@/lib/qzPrinterConfig";
+import { PREFIXO_CP850, viaEscposParaQz } from "@/lib/escposEncoding";
 import { ensureQzConnected } from "@/lib/qzConnectionManager";
 import {
   buildOriginLabel,
@@ -40,7 +44,9 @@ export type PrintReceiptMode = "pedido" | "conta";
 export interface PrintOrderQzOptions {
   /**
    * Contexto da impressão:
-   * - "pedido" (padrão): imprime DUAS vias (Cliente + Cozinha) com corte entre elas.
+   * - "pedido" (padrão): imprime a via do Cliente e, quando
+   *   `printer_settings.print_kitchen_copy` estiver ligado, também a via da
+   *   Cozinha, com corte entre elas.
    * - "conta": imprime APENAS UMA via (Cliente) — usado em fechamento/pagamento
    *   para evitar duplicação do cupom e via desnecessária da cozinha.
    */
@@ -96,14 +102,8 @@ const ESC = "\x1B";
 const GS = "\x1D";
 
 const ESCPOS = {
-  INIT: ESC + "@",
-  // Seleciona code page CP850 (Latin-1, com suporte a acentos PT-BR: á é í ó ú â ê ô ã õ ç etc.)
-  // ESC t n  →  n = 2  → PC850 (Multilingual Latin I) na maioria das térmicas ESC/POS.
-  // Combinado com options.encoding="CP850" no qz.print, o QZ Tray converte a string
-  // UTF-8 para bytes CP850 antes de enviar, então os caracteres acentuados saem corretos.
-  CODEPAGE_CP850: ESC + "t" + "\x02",
-  // Seleciona conjunto internacional "Latin American" (ajuda em algumas impressoras antigas).
-  CHARSET_LATIN: ESC + "R" + "\x08",
+  // O reset + seleção de code page vive em escposEncoding.PREFIXO_CP850, para
+  // não existir em dois lugares e divergir da tabela de bytes.
   ALIGN_LEFT: ESC + "a" + "\x00",
   ALIGN_CENTER: ESC + "a" + "\x01",
   ALIGN_RIGHT: ESC + "a" + "\x02",
@@ -194,7 +194,10 @@ function labeled(label: string, value: string, width = LINE_WIDTH): string {
 // =============================================================
 // Restaurante (nome da loja)
 // =============================================================
-async function fetchRestaurantName(orderId: string): Promise<string> {
+/** Nome da loja + restaurant_id, em uma única consulta. */
+async function fetchDadosDaLoja(
+  orderId: string
+): Promise<{ nome: string; restaurantId: string | null }> {
   const { data, error } = await supabase
     .from("orders")
     .select("restaurant_id, restaurants:restaurant_id(name)")
@@ -203,10 +206,44 @@ async function fetchRestaurantName(orderId: string): Promise<string> {
 
   if (error || !data) {
     console.warn("[printOrderWithQz] Falha ao buscar nome da loja:", error);
-    return "Loja";
+    return { nome: "Loja", restaurantId: null };
   }
   const name = (data as any).restaurants?.name;
-  return typeof name === "string" && name.length > 0 ? name : "Loja";
+  return {
+    nome: typeof name === "string" && name.length > 0 ? name : "Loja",
+    restaurantId: data.restaurant_id ?? null,
+  };
+}
+
+/**
+ * Lê a preferência "imprimir via da cozinha" de `printer_settings`.
+ *
+ * Desligada → sai apenas a via do cliente.
+ * Ligada    → saem as duas vias (cliente + cozinha), com corte entre elas.
+ *
+ * Em qualquer falha de leitura devolve `true`, preservando o comportamento
+ * histórico (duas vias) em vez de silenciosamente deixar a cozinha sem pedido.
+ */
+async function fetchViaCozinhaHabilitada(
+  restaurantId: string | null
+): Promise<boolean> {
+  if (!restaurantId) return true;
+  const { data, error } = await supabase
+    .from("printer_settings")
+    .select("print_kitchen_copy")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(
+      "[printOrderWithQz] Falha ao ler print_kitchen_copy; assumindo via da cozinha LIGADA:",
+      error.message
+    );
+    return true;
+  }
+  // Sem registro em printer_settings ainda → mantém as duas vias.
+  if (!data) return true;
+  return data.print_kitchen_copy !== false;
 }
 
 // =============================================================
@@ -217,10 +254,9 @@ function buildCustomerReceipt(
   storeName: string
 ): string {
   let out = "";
-  out += ESCPOS.INIT;
-  // Selecionar code page CP850 para imprimir acentos PT-BR corretamente.
-  out += ESCPOS.CODEPAGE_CP850;
-  out += ESCPOS.CHARSET_LATIN;
+  // Reset + code page CP850 (fonte única em escposEncoding.ts): precisa casar
+  // com a tabela usada por `paraBytesCp850`, senão os acentos saem errados.
+  out += PREFIXO_CP850;
 
   // ---------- Cabeçalho: nome da loja ----------
   out += ESCPOS.ALIGN_CENTER;
@@ -413,10 +449,9 @@ function buildCustomerReceipt(
 
 function buildKitchenReceipt(order: OrderForPrinting): string {
   let out = "";
-  out += ESCPOS.INIT;
-  // Selecionar code page CP850 para imprimir acentos PT-BR corretamente.
-  out += ESCPOS.CODEPAGE_CP850;
-  out += ESCPOS.CHARSET_LATIN;
+  // Reset + code page CP850 (fonte única em escposEncoding.ts): precisa casar
+  // com a tabela usada por `paraBytesCp850`, senão os acentos saem errados.
+  out += PREFIXO_CP850;
 
 
   // ---------- Cabeçalho ----------
@@ -569,12 +604,19 @@ export async function printOrderWithQz(
 
   try {
     console.log("⏳ Carregando pedido…");
-    const [order, storeName] = await Promise.all([
+    const [order, loja] = await Promise.all([
       fetchOrderForPrinting(orderId),
-      fetchRestaurantName(orderId),
+      fetchDadosDaLoja(orderId),
     ]);
+    const storeName = loja.nome;
     console.log("✅ Pedido carregado:", order);
     console.log("🏪 Loja:", storeName);
+
+    // Preferência do restaurante: imprimir (ou não) a via da cozinha.
+    const imprimirViaCozinha = await fetchViaCozinhaHabilitada(loja.restaurantId);
+    console.log(
+      `🍳 Via da cozinha: ${imprimirViaCozinha ? "HABILITADA" : "DESABILITADA"} (printer_settings.print_kitchen_copy)`
+    );
 
     try {
       console.log("🖨️ [QZ Print] garantindo conexão persistente antes de imprimir...");
@@ -677,19 +719,24 @@ export async function printOrderWithQz(
     const customer = buildCustomerReceipt(order, storeName);
     console.log("📄 Via do CLIENTE preparada.");
 
-    // IMPORTANTE: options.encoding="CP850" instrui o QZ Tray a converter o texto
-    // (UTF-8 em JS) para bytes na code page CP850 antes de enviar à impressora.
-    // Combinado com o comando ESC t 2 já embutido no início de cada via, garante
-    // que acentos do português (á é í ó ú â ê ô ã õ ç) sejam impressos corretamente
-    // em vez de virarem símbolos estranhos.
-    const data: { type: string; format: string; data: string; options?: any }[] = [
-      { type: "raw", format: "plain", data: customer, options: { encoding: "CP850" } },
-    ];
+    // IMPORTANTE: a conversão de charset é feita AQUI, em JS, por
+    // `viaEscposParaQz` — que transforma o texto em bytes CP850 e os envia em
+    // hexadecimal. Não dependemos de `options.encoding` do QZ Tray (que só vale
+    // no config, nunca no item de dados) nem do charset do Java da máquina do
+    // operador. Combinado com o `ESC t 2` embutido no início de cada via, isso
+    // garante que acentos e cedilha (á é í ó ú â ê ô ã õ ç Ç) saiam corretos, e
+    // que qualquer caractere fora da CP850 seja transliterado para ASCII em vez
+    // de virar lixo na bobina.
+    const data: ReturnType<typeof viaEscposParaQz>[] = [viaEscposParaQz(customer)];
 
-    if (mode === "pedido") {
+    if (mode === "pedido" && imprimirViaCozinha) {
       const kitchen = buildKitchenReceipt(order);
       console.log("📄 Via da COZINHA preparada.");
-      data.push({ type: "raw", format: "plain", data: kitchen, options: { encoding: "CP850" } });
+      data.push(viaEscposParaQz(kitchen));
+    } else if (mode === "pedido") {
+      console.log(
+        "ℹ️ Via da cozinha DESATIVADA em Configurações → Impressoras: apenas a via do cliente será impressa."
+      );
     } else {
       console.log("ℹ️ Modo 'conta': via da cozinha NÃO será impressa.");
     }
