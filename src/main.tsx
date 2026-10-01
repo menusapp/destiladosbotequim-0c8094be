@@ -22,7 +22,7 @@ import "./lib/printOrderWithQz";
 // Configura assinatura digital do QZ Tray (elimina o popup "Untrusted website"
 // quando o certificado correspondente está instalado no QZ Tray do cliente).
 import { setupQzSigning } from "./lib/qzSigning";
-setupQzSigning();
+void setupQzSigning();
 
 // Meta Pixel — inicializa o mais cedo possível (PageView inicial automático)
 import { initMetaPixel } from "./lib/metaPixel";

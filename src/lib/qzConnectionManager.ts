@@ -86,7 +86,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function doConnect(opts: Required<ConnectOptions>): Promise<void> {
-  setupQzSigning();
+  await setupQzSigning();
   attachWsListenersOnce();
 
   // Já conectado? nada a fazer.
@@ -140,7 +140,7 @@ export function ensureQzConnected(options: ConnectOptions = {}): Promise<void> {
     retries: options.retries ?? 3,
   };
 
-  setupQzSigning();
+  void setupQzSigning(); // doConnect aguarda; aqui é só adiantar
   attachWsListenersOnce();
 
   // Se o socket já está ativo, reaproveita a conexão existente mesmo que o

@@ -21,7 +21,7 @@ const FUNCTIONS_BASE = PROJECT_ID
   ? `https://${PROJECT_ID}.supabase.co/functions/v1`
   : "";
 
-let configured = false;
+let setupPromise: Promise<void> | null = null;
 let certPromise: Promise<string> | null = null;
 
 async function fetchCertificate(): Promise<string> {
@@ -48,9 +48,39 @@ async function signRequest(toSign: string): Promise<string> {
  * Configura QZ Tray para assinar mensagens. Idempotente — pode ser chamado
  * várias vezes; só executa a configuração na primeira chamada.
  */
-export function setupQzSigning(): void {
-  if (configured) return;
-  configured = true;
+export function setupQzSigning(): Promise<void> {
+  // Promise compartilhada em vez de flag booleana: com a flag, uma segunda
+  // chamada retornava imediatamente enquanto a primeira ainda sondava o
+  // certificado — e o connect seguia sem as promises instaladas.
+  if (!setupPromise) setupPromise = configurar();
+  return setupPromise;
+}
+
+async function configurar(): Promise<void> {
+
+  // Sonda o certificado ANTES de instalar as promises de assinatura.
+  //
+  // Por que isso importa: se o backend não tem QZ_CERTIFICATE/QZ_PRIVATE_KEY
+  // configurados, as promises rejeitam — e uma assinatura rejeitada faz o
+  // qz-tray.js falhar a chamada inteira. O sintoma é cruel: a conexão abre
+  // normalmente, mas `qz.printers.find()` devolve erro e a tela diz apenas
+  // "não foi possível listar impressoras".
+  //
+  // Sem as promises instaladas, o qz-tray.js opera em modo NÃO ASSINADO: o QZ
+  // Tray pede permissão a cada operação (e o "Remember" fica desabilitado,
+  // porque ele só memoriza sites assinados), mas tudo FUNCIONA. É melhor
+  // pedir permissão do que não listar impressora nenhuma.
+  try {
+    await fetchCertificate();
+  } catch (err) {
+    console.warn(
+      "[qz-signing] Certificado indisponível no backend — operando em modo NÃO ASSINADO.\n" +
+      "O QZ Tray vai pedir permissão a cada impressão e o 'Remember' ficará desabilitado.\n" +
+      "Para eliminar isso, configure os secrets QZ_CERTIFICATE e QZ_PRIVATE_KEY.",
+      err instanceof Error ? err.message : err,
+    );
+    return; // não instala as promises
+  }
 
   // Algoritmo de assinatura (precisa casar com a edge function: SHA-512)
   try {
