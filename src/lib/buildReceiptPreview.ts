@@ -116,13 +116,13 @@ function labeled(label: string, value: string, width: number): string {
 }
 
 /**
- * Nome da loja + se a via da cozinha está habilitada — o preview precisa
- * refletir exactamente o que a impressora vai receber, então lê a mesma
- * preferência (`printer_settings.print_kitchen_copy`) que printOrderWithQz.
+ * Nome da loja + as opções que definem quantas vias saem. O preview se anuncia
+ * como fiel ao que a impressora recebe, então lê as MESMAS preferências que
+ * printOrderWithQz: `print_kitchen_copy` e `print_copies`.
  */
 async function fetchContextoDaLoja(
   orderId: string
-): Promise<{ nome: string; imprimirViaCozinha: boolean }> {
+): Promise<{ nome: string; imprimirViaCozinha: boolean; copiasCliente: number }> {
   const { data } = await supabase
     .from("orders")
     .select("restaurant_id, restaurants:restaurant_id(name)")
@@ -132,17 +132,25 @@ async function fetchContextoDaLoja(
   const nome = typeof name === "string" && name.length > 0 ? name : "Loja";
   const restaurantId = data?.restaurant_id ?? null;
 
-  if (!restaurantId) return { nome, imprimirViaCozinha: true };
+  if (!restaurantId) return { nome, imprimirViaCozinha: true, copiasCliente: 1 };
 
   const { data: cfg, error } = await supabase
     .from("printer_settings")
-    .select("print_kitchen_copy")
+    .select("print_kitchen_copy, print_copies")
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
   // Qualquer falha de leitura → assume habilitada, igual à impressão real.
-  if (error || !cfg) return { nome, imprimirViaCozinha: true };
-  return { nome, imprimirViaCozinha: cfg.print_kitchen_copy !== false };
+  if (error || !cfg) return { nome, imprimirViaCozinha: true, copiasCliente: 1 };
+
+  const bruto = Number(cfg.print_copies);
+  return {
+    nome,
+    imprimirViaCozinha: cfg.print_kitchen_copy !== false,
+    copiasCliente: Number.isFinite(bruto)
+      ? Math.min(4, Math.max(1, Math.trunc(bruto)))
+      : 1,
+  };
 }
 
 const dblWidth = (width: number) => Math.max(10, Math.floor(width / 2));
@@ -391,6 +399,8 @@ export interface ReceiptPreviewResult {
   kitchen: string;
   /** false quando a via da cozinha está desligada em Configurações → Impressoras. */
   kitchenEnabled: boolean;
+  /** Quantas vias do cliente saem ("Número de Vias"). */
+  clientCopies: number;
   combined: string;
   storeName: string;
   orderId: string;
@@ -416,6 +426,7 @@ export async function buildReceiptPreview(
     customer,
     kitchen,
     kitchenEnabled: loja.imprimirViaCozinha,
+    clientCopies: loja.copiasCliente,
     combined: loja.imprimirViaCozinha
       ? customer + cutMark + kitchen + cutMark
       : customer + cutMark,

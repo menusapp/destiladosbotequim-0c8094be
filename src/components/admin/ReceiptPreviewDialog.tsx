@@ -147,9 +147,12 @@ export function ReceiptPreviewDialog({
                 Loja: <span className="font-medium">{data.storeName}</span> ·
                 Pedido{" "}
                 <span className="font-mono">{data.orderId.slice(0, 8)}</span> ·{" "}
-                {data.kitchenEnabled
-                  ? "2 vias (cliente + cozinha)"
-                  : "1 via (apenas cliente)"}
+                {(() => {
+                  const total = data.clientCopies + (data.kitchenEnabled ? 1 : 0);
+                  const cliente = `${data.clientCopies}x cliente`;
+                  const detalhe = data.kitchenEnabled ? `${cliente} + cozinha` : cliente;
+                  return `${total} via${total > 1 ? "s" : ""} (${detalhe})`;
+                })()}
               </span>
             )}
             <Button

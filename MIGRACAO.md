@@ -259,14 +259,28 @@ O Lovable também hospedava o site. Escolha onde hospedar:
 **Vercel / Netlify** (mais simples): conecte o repositório, build `npm run build`,
 diretório `dist`, e cadastre as variáveis `VITE_*` no painel.
 
-**VPS que você já tem** (`vmi3228699`), com nginx:
+**VPS que você já tem** (`vmi3228699`) — é o que está em uso hoje. O site é
+servido por `npx serve -s dist -l 8081`, a partir de `/root/destilados-erp`.
+Para publicar uma versão nova, use o script do repositório:
 
 ```bash
-npm ci && npm run build
-sudo cp -r dist/* /var/www/destilado/
+cd ~/destilados-erp && ./deploy.sh
 ```
 
-Como é uma SPA com rotas, o nginx precisa cair no `index.html`:
+Ele faz `git pull`, builda **numa pasta separada** (o site continua no ar
+durante o build, e um build que falha não derruba nada), troca as pastas,
+reinicia o `serve` e confirma que a porta voltou a responder. A versão anterior
+fica em `dist.anterior`; para voltar atrás:
+
+```bash
+cd ~/destilados-erp && rm -rf dist && mv dist.anterior dist && ./deploy.sh --so-reiniciar
+```
+
+Depois do deploy, dê `Ctrl+Shift+R` no navegador — senão o PC continua com o
+JavaScript antigo em cache.
+
+Se um dia migrar para nginx, como é uma SPA com rotas ele precisa cair no
+`index.html`:
 
 ```nginx
 location / {

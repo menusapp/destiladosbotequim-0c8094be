@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Pastas de trabalho do deploy.sh: build novo e cópia para rollback
+dist.new
+dist.anterior
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -308,7 +308,7 @@ const PrintersSettings = ({ restaurantId }: { restaurantId: string }) => {
 
           <div className="space-y-2 max-w-xs">
             <Label>Número de Vias</Label>
-            <p className="text-sm text-muted-foreground">Quantas cópias imprimir de cada pedido</p>
+            <p className="text-sm text-muted-foreground">Quantas cópias da via do cliente sair em cada pedido. A via da cozinha sai sempre uma só.</p>
             <Select value={String(webConfig.printCopies)} onValueChange={(value) => setWebConfig(prev => ({ ...prev, printCopies: parseInt(value) }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

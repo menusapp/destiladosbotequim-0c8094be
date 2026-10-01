@@ -215,35 +215,62 @@ async function fetchDadosDaLoja(
   };
 }
 
+/** Opções de Configurações → Impressoras que afetam quantas vias são enviadas. */
+interface ConfigDeVias {
+  /** `print_kitchen_copy`: emitir também a via da cozinha. */
+  viaCozinha: boolean;
+  /** `print_copies` ("Número de Vias"): cópias da via do CLIENTE. */
+  copiasCliente: number;
+}
+
+/** Mesmo limite do seletor em Configurações → Impressoras (1 a 4 vias). */
+const MAX_COPIAS_CLIENTE = 4;
+
 /**
- * Lê a preferência "imprimir via da cozinha" de `printer_settings`.
+ * Lê de `printer_settings` as duas opções que mudam o número de vias.
  *
- * Desligada → sai apenas a via do cliente.
- * Ligada    → saem as duas vias (cliente + cozinha), com corte entre elas.
+ * - `print_kitchen_copy` desligado → sai só a via do cliente.
+ * - `print_copies` = N → a via do CLIENTE sai N vezes. A via da cozinha sai
+ *   uma só, mesmo com N > 1: é o mesmo critério do caminho PDF
+ *   (`printOrder.ts` multiplica apenas o cupom do cliente, e a via da cozinha
+ *   é gerada por uma função separada). A cozinha não tem uso para a segunda.
  *
- * Em qualquer falha de leitura devolve `true`, preservando o comportamento
- * histórico (duas vias) em vez de silenciosamente deixar a cozinha sem pedido.
+ * Em qualquer falha de leitura assume via da cozinha LIGADA e 1 cópia: é melhor
+ * imprimir a mais do que deixar a cozinha sem o pedido.
  */
-async function fetchViaCozinhaHabilitada(
+async function fetchConfigDeVias(
   restaurantId: string | null
-): Promise<boolean> {
-  if (!restaurantId) return true;
+): Promise<ConfigDeVias> {
+  const padrao: ConfigDeVias = { viaCozinha: true, copiasCliente: 1 };
+  if (!restaurantId) return padrao;
+
   const { data, error } = await supabase
     .from("printer_settings")
-    .select("print_kitchen_copy")
+    .select("print_kitchen_copy, print_copies")
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
   if (error) {
     console.warn(
-      "[printOrderWithQz] Falha ao ler print_kitchen_copy; assumindo via da cozinha LIGADA:",
+      "[printOrderWithQz] Falha ao ler printer_settings; usando padrão (cozinha LIGADA, 1 cópia):",
       error.message
     );
-    return true;
+    return padrao;
   }
-  // Sem registro em printer_settings ainda → mantém as duas vias.
-  if (!data) return true;
-  return data.print_kitchen_copy !== false;
+  // Sem registro em printer_settings ainda → mantém o padrão.
+  if (!data) return padrao;
+
+  // O valor vem do banco: clamp para não transformar um dado estranho (0,
+  // negativo, 50) em nenhuma via ou numa bobina inteira.
+  const bruto = Number(data.print_copies);
+  const copiasCliente = Number.isFinite(bruto)
+    ? Math.min(MAX_COPIAS_CLIENTE, Math.max(1, Math.trunc(bruto)))
+    : 1;
+
+  return {
+    viaCozinha: data.print_kitchen_copy !== false,
+    copiasCliente,
+  };
 }
 
 // =============================================================
@@ -612,10 +639,11 @@ export async function printOrderWithQz(
     console.log("✅ Pedido carregado:", order);
     console.log("🏪 Loja:", storeName);
 
-    // Preferência do restaurante: imprimir (ou não) a via da cozinha.
-    const imprimirViaCozinha = await fetchViaCozinhaHabilitada(loja.restaurantId);
+    // Configuração do restaurante: via da cozinha + nº de vias do cliente.
+    const configVias = await fetchConfigDeVias(loja.restaurantId);
     console.log(
-      `🍳 Via da cozinha: ${imprimirViaCozinha ? "HABILITADA" : "DESABILITADA"} (printer_settings.print_kitchen_copy)`
+      `🍳 Via da cozinha: ${configVias.viaCozinha ? "HABILITADA" : "DESABILITADA"} | ` +
+        `Vias do cliente: ${configVias.copiasCliente} (printer_settings)`
     );
 
     try {
@@ -712,12 +740,15 @@ export async function printOrderWithQz(
       console.log("✅ Impressora compatível com ESC/POS detectada.");
     }
 
-    // ---------- Montagem das vias conforme o MODO ----------
-    // - "pedido": 2 vias (Cliente + Cozinha) com corte entre elas (corte já vai
-    //   embutido no final de cada buildXReceipt via ESCPOS.CUT).
-    // - "conta":  1 via (Cliente apenas) — sem via da cozinha, sem duplicação.
+    // ---------- Montagem das vias ----------
+    // O corte já vai embutido no fim de cada via (ESCPOS.CUT em
+    // buildCustomerReceipt / buildKitchenReceipt), então cada item desta lista
+    // sai como um cupom destacado.
+    // - "pedido": N vias do cliente (Configurações → Impressoras → Número de
+    //   Vias) + 1 da cozinha, se habilitada.
+    // - "conta":  1 via do cliente, sempre — é o cupom do fechamento, repetir
+    //   não faz sentido e a cozinha não tem o que fazer com ele.
     const customer = buildCustomerReceipt(order, storeName);
-    console.log("📄 Via do CLIENTE preparada.");
 
     // IMPORTANTE: a conversão de charset é feita AQUI, em JS, por
     // `viaEscposParaQz` — que transforma o texto em bytes CP850 e os envia em
@@ -727,9 +758,17 @@ export async function printOrderWithQz(
     // garante que acentos e cedilha (á é í ó ú â ê ô ã õ ç Ç) saiam corretos, e
     // que qualquer caractere fora da CP850 seja transliterado para ASCII em vez
     // de virar lixo na bobina.
-    const data: ReturnType<typeof viaEscposParaQz>[] = [viaEscposParaQz(customer)];
+    const data: ReturnType<typeof viaEscposParaQz>[] = [];
 
-    if (mode === "pedido" && imprimirViaCozinha) {
+    // Via do cliente, repetida conforme "Número de Vias". Cada item da lista é
+    // um job separado para o QZ, e cada via já termina com o comando de corte,
+    // então as cópias saem destacadas uma da outra.
+    const viaCliente = viaEscposParaQz(customer);
+    const copiasCliente = mode === "conta" ? 1 : configVias.copiasCliente;
+    for (let i = 0; i < copiasCliente; i++) data.push(viaCliente);
+    console.log(`📄 Via do CLIENTE preparada (${copiasCliente}x).`);
+
+    if (mode === "pedido" && configVias.viaCozinha) {
       const kitchen = buildKitchenReceipt(order);
       console.log("📄 Via da COZINHA preparada.");
       data.push(viaEscposParaQz(kitchen));
@@ -738,15 +777,13 @@ export async function printOrderWithQz(
         "ℹ️ Via da cozinha DESATIVADA em Configurações → Impressoras: apenas a via do cliente será impressa."
       );
     } else {
-      console.log("ℹ️ Modo 'conta': via da cozinha NÃO será impressa.");
+      console.log("ℹ️ Modo 'conta': 1 via do cliente, sem via da cozinha.");
     }
-
 
     const copies = data.length;
     console.log(
-      `🧾 [QZ] Modo de impressão: "${mode}" → ${copies} via(s) ${
-        copies === 1 ? "(apenas Cliente)" : "(Cliente + Cozinha)"
-      }`
+      `🧾 [QZ] Modo "${mode}" → ${copies} via(s): ` +
+        `${copiasCliente}x Cliente${configVias.viaCozinha && mode === "pedido" ? " + 1x Cozinha" : ""}`
     );
 
     const config = qz.configs.create(usedPrinter);
