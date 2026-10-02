@@ -293,6 +293,49 @@ Aponte o DNS do domínio para a nova hospedagem e emita o certificado
 
 ---
 
+## 9.1. Domínio próprio — ANTES de imprimir QR Code
+
+Os links que o sistema entrega ao **cliente** não saem do endereço onde o painel
+está aberto: eles são montados a partir de uma configuração. Enquanto ela não
+estiver definida, o padrão do código é `menusapp.com.br` — que é outro produto.
+
+Três lugares entregam esses links:
+
+| O que | Onde no código |
+|---|---|
+| QR Code da mesa | `PDVTab` → `getTableMenuLink` |
+| Link compartilhável (prévia no WhatsApp) | `ShareableLinksSection` → `getShareableMenuLink` |
+| Link de avaliação enviado ao entregar o pedido | `useOrderStatusAdvance` → `buildPublicUrl` |
+
+**Ordem correta: domínio primeiro, QR Code depois.** Se os QR Codes das mesas
+forem impressos antes, eles mandam o cliente para o domínio errado — e, se
+aquele domínio servir uma versão antiga, para o **banco errado**, com o pedido
+caindo em outro Supabase. Papel impresso não se corrige com deploy.
+
+Quando o domínio existir, são três valores — nenhuma alteração de código:
+
+```bash
+# 1 e 2: no .env da VPS (exige rebuild, pois VITE_* é embutido no build)
+VITE_PUBLIC_DOMAIN=destiladobotequim.com.br
+VITE_APP_DOMAINS=destiladobotequim.com.br,localhost
+```
+
+```
+# 3: secret no Supabase (vale na hora, sem rebuild)
+#    Settings → Edge Functions → Secrets
+PUBLIC_DOMAIN=destiladobotequim.com.br
+```
+
+Depois: `cd ~/destilados-erp && ./deploy.sh`
+
+O esquema é fixo em `https://`, então o domínio precisa ter certificado — o que
+já vem de graça ao colocá-lo no Cloudflare com a nuvem laranja (proxied).
+
+Para conferir que pegou, abra o cardápio pelo link que a tela de configurações
+mostra: ele tem de apontar para o domínio novo.
+
+---
+
 ## 10. Primeiro acesso
 
 A migration `20260916160000` já cria o estabelecimento e os dois acessos —
