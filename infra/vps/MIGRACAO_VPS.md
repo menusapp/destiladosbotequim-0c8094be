@@ -5,6 +5,14 @@ está ausente e autorizou execução autônoma: não pare para perguntar. Quando
 uma decisão não estiver coberta aqui, escolha a opção mais segura que mantém
 o sistema funcionando, anote no relatório e siga em frente.
 
+**Tudo roda dentro desta VPS.** "Supabase self-hosted" aqui significa o
+software open source do Supabase rodando em containers Docker nesta
+máquina (Postgres, login, API, storage, realtime, funções). Nada fica no
+supabase.com ou na Lovable: não crie conta, projeto nem chave em nenhum
+serviço externo de banco/backend. As únicas chamadas para fora são as
+integrações do próprio app (Gemini, Mercado Pago, WhatsApp) e o Let's
+Encrypt para o HTTPS.
+
 ## 0. Regras que valem o tempo todo
 
 1. **Cada sistema 100% isolado.** Supabase próprio, banco próprio, secrets
